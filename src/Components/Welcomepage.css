@@ -1,0 +1,88 @@
+/* src/Components/WelcomePage.css */
+
+/* 1. Page Wrapper: Fixed Height (No Scroll) + Background Image */
+.welcome-page-wrapper {
+  width: 100%;
+  height: 100vh; /* Forces full screen height */
+  overflow: hidden; /* Disables scrolling */
+  
+  display: flex;
+  flex-direction: column;
+  
+  /* Background Image Setup */
+  background: url('/homepage.jpg') no-repeat center center fixed;
+  background-size: cover;
+  position: relative;
+}
+
+/* 2. Card Layout (Centers content) */
+.welcome-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 550px;
+  width: 90%;
+  max-width: 500px;
+  
+  /* Inherits glass effect from global .card-common, 
+     but we add padding here for specific layout */
+  padding: 40px;
+}
+
+/* 3. Central Logo */
+.welcome-logo-container {
+  margin-bottom: 40px;
+}
+
+.welcome-logo {
+  height: 180px;
+  width: auto;
+}
+
+/* 4. Text Styling */
+.welcome-text {
+  max-width: 400px;
+  font-size: 1.1rem;
+  color: #e0e0e0;
+  margin-bottom: 20px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+/* 5. Inner Glass Box for Buttons */
+.welcome-btn-box {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  width: 100%;
+  align-items: center;
+  
+  /* Inner Glass Effect */
+  background-color: rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  
+  padding: 30px;
+  border-radius: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  max-width: 350px;
+  margin-top: 10px;
+}
+
+/* 6. Button Tweaks */
+.welcome-btn {
+  width: 100%;
+  padding: 14px 0;
+  font-size: 16px;
+}
+
+/* 7. Outline Button (Sign In) */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--color-primary-cyan);
+  color: white; 
+}
+.btn-outline:hover {
+  background: rgba(0, 188, 212, 0.1);
+}

@@ -1,0 +1,320 @@
+/* ===== Global Variables ===== */
+:root {
+  --color-primary-cyan: #00bcd4;
+  --color-primary-dark: #0a0a0a;
+  --color-bg-light: #f4f4f4;
+  --color-bg-dark: #ffffff;
+  --color-text: #333333;
+  --btn-radius: 8px;
+  --card-radius: 12px;
+  --transition-speed: 0.3s;
+}
+
+/* ===== Reset & Base ===== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: 'Poppins', sans-serif;
+}
+
+body {
+  background-color: var(--color-bg-light);
+  color: var(--color-text);
+}
+
+/* ===== Container ===== */
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+}
+
+/* ===== Card ===== */
+.Card, .card {
+  background-color: var(--color-bg-dark);
+  border-radius: var(--card-radius);
+  box-shadow: 0 6px 25px rgba(0,0,0,0.12);
+  padding: 25px 30px;
+  margin: 20px 0;
+}
+
+/* ===== Logo ===== */
+.logo-container {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.logo {
+  max-width: 180px;
+  height: auto;
+}
+
+/* ===== Forms ===== */
+.signpage-container, .sign-form, .form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.signpage-container {
+  max-width: 450px;
+  margin: 15vh auto;
+  padding: 20px;
+  text-align: left;
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+.form-title {
+  color: var(--color-primary-cyan);
+  text-align: center;
+  font-size: 30px;
+  margin-bottom: 30px;
+}
+
+.signpage-container input, .form-group input {
+  padding: 12px 15px;
+  margin-top: 5px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 12px;
+  transition: all var(--transition-speed);
+}
+
+.signpage-container input:focus, .form-group input:focus {
+  outline: none;
+  border-color: var(--color-primary-cyan);
+}
+
+/* ===== Buttons ===== */
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-speed);
+  box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+.btn.primary {
+  background-color: var(--color-primary-cyan);
+  color: #fff;
+}
+
+.btn.primary:hover {
+  background-color: #00acc1;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(0,188,212,0.4);
+}
+
+/* ===== Link Text ===== */
+.link-text {
+  color: var(--color-primary-cyan);
+  cursor: pointer;
+}
+
+.link-text:hover {
+  text-decoration: underline;
+}
+
+/* ===== Back / Subtitle Text ===== */
+.back, .subtitle {
+  font-size: 14px;
+  color: #666;
+  margin-top: 10px;
+  line-height: 1.5;
+}
+
+/* ===== Account Type Selection ===== */
+.account-type-container {
+  text-align: center;
+}
+
+.account-buttons {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 30px;
+}
+
+.account-btn {
+  padding: 15px 25px;
+  border: none;
+  border-radius: var(--btn-radius);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-speed);
+}
+
+.account-btn.individual {
+  background-color: #00bcd4;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,188,212,0.3);
+}
+
+.account-btn.organization {
+  background-color: #4caf50;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(76,175,80,0.3);
+}
+
+.account-btn:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* ===== Sidebar + Content ===== */
+.main-layout-container {
+  display: flex;
+  min-height: 100vh;
+}
+
+.content-area {
+  flex: 1;
+  padding: 30px;
+  background-color: var(--color-bg-light);
+  overflow-y: auto;
+}
+
+/* ===== Fade Animation ===== */
+.fade {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  0% {opacity: 0; transform: translateY(10px);}
+  100% {opacity: 1; transform: translateY(0);}
+}
+
+/* ===== Responsive Design ===== */
+@media (max-width: 768px) {
+  .container,
+  .signpage-container {
+    margin: 10vh 15px;
+    padding: 15px;
+    width: auto;
+  }
+
+  .signpage-container input,
+  .form-group input {
+    width: 100%;
+  }
+
+  .account-buttons {
+    flex-direction: column;
+    gap: 15px;
+  }
+
+  .account-btn {
+    width: 100%;
+  }
+
+  .Card {
+    padding: 20px;
+  }
+
+  .main-layout-container {
+    flex-direction: column;
+  }
+
+  .content-area {
+    padding: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .form-title {
+    font-size: 24px;
+  }
+
+  .btn {
+    padding: 10px 15px;
+    font-size: 14px;
+  }
+}
+/* ===== Landing Page ===== */
+.landing-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-image: url('./assets/landing-bg.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: var(--color-text-light);
+}
+
+.landing-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 50px;
+  background-color: rgba(33,33,33,0.85);
+}
+
+.landing-logo {
+  max-width: 180px;
+  height: auto;
+}
+
+.landing-nav-links {
+  list-style: none;
+  display: flex;
+  gap: 30px;
+}
+
+.landing-nav-links li {
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-speed);
+}
+
+.landing-nav-links li:hover {
+  color: var(--color-primary-cyan);
+  text-decoration: underline;
+}
+
+.landing-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 50px 30px;
+  background-color: rgba(33, 33, 33, 0.85);
+  margin: 50px auto;
+  border-radius: var(--card-radius);
+  max-width: 700px;
+  box-shadow: 0 8px 25px rgba(0,0,0,0.25);
+}
+
+.landing-title {
+  font-size: 3rem;
+  margin-bottom: 20px;
+  color: var(--color-primary-cyan);
+}
+
+.landing-desc {
+  font-size: 1.2rem;
+  margin-bottom: 30px;
+  color: var(--color-text-light);
+}
+
+.landing-btn {
+  padding: 15px 40px;
+  font-size: 1.2rem;
+  border: none;
+  border-radius: var(--btn-radius);
+  background-color: var(--color-primary-cyan);
+  color: var(--color-text-light);
+  cursor: pointer;
+  font-weight: 500;
+  transition: all var(--transition-speed);
+}
+
+.landing-btn:hover {
+  background-color: #00acc1;
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 6px 20px rgba(0,188,212,0.4);
+}
