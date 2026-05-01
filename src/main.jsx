@@ -1,10 +1,17 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
-import App from './App.jsx'; // Correct path: App is next to main
+import App from './App.jsx';
 import './index.css';
 
-ReactDOM.createRoot(document.getElementById('root')).render(
+// Optional: You can add providers here later (Auth, Redux, Router)
+const rootElement = document.getElementById('root');
+
+if (!rootElement) {
+  throw new Error("Root element not found in index.html");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
-  </React.StrictMode>,
+  </React.StrictMode>
 );
