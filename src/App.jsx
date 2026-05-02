@@ -54,24 +54,24 @@ const App = () => {
         setUserData(user);
 
         // ✅ FIXED: always trust form OR backend (no fallback bug)
-        const type = (user.userType || "").toUpperCase();
+        const type =
+          user.userType ||
+          formData?.userType ||
+          "INDIVIDUAL";
 
-    const allowedTypes = ["INDIVIDUAL", "ORGANIZATION"];
-const finalType = allowedTypes.includes(type) ? type : "INDIVIDUAL";
-
-setUserType(finalType);
+        setUserType(type);
 
         setToken(data.token);
 
         // ✅ FIXED: consistent orgId handling
-    const organizationId =
-  finalType === "ORGANIZATION"
-    ? (user.orgId ||
-       user.orgID ||
-       user.organizationId ||
-       data.orgId ||
-       null)
-    : null;
+        const organizationId =
+          (type === "ORGANIZATION" || formData?.userType === "ORGANIZATION")
+            ? (user.orgId ||
+               user.orgID ||
+               user.organizationId ||
+               data.orgId ||
+               null)
+            : null;
 
         setOrgId(organizationId);
 
