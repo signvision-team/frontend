@@ -10,6 +10,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     phoneNumber: "",
     dob: "",
     orgName: "",
+    regNumber: "", // Tracking state field for the registration number
     contactPerson: "",
     contactNumber: "",
     address: "",
@@ -38,15 +39,28 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     }
 
     const payload = {
-      ...formData,
-      dob: finalDob,
-      userType: registrationType
+      email: formData.email.trim(),
+      password: formData.password.trim(),
+      address: formData.address.trim(),
+      userType: registrationType,
+      ...(registrationType === "INDIVIDUAL"
+        ? {
+            firstName: formData.firstName.trim(),
+            lastName: formData.lastName.trim(),
+            phoneNumber: formData.phoneNumber.trim(),
+            dob: finalDob
+          }
+        : {
+            orgName: formData.orgName.trim(),
+            regNumber: formData.regNumber.trim(), // Added to organization config payload
+            contactPerson: formData.contactPerson.trim(),
+            contactNumber: formData.contactNumber.trim()
+          })
     };
 
     try {
       const response = await handleSignUp(payload);
 
-      // ✅ IMPORTANT: backend must return object
       if (response?.success) {
         if (registrationType === "ORGANIZATION") {
           alert(
@@ -73,21 +87,39 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
         <img src={svLogo} alt="SignVision" style={{ height: "150px" }} />
       </div>
 
+      {/* ✅ CORRECTED NAVBAR SECTION WITH SCROLL TARGET ACTIONS */}
       <div className="navbar">
         <ul className="navbar-links">
+          {/* Home leads cleanly to the top of SignPage */}
           <li onClick={() => navigate(VIEWS.SIGN_IN)} style={{ cursor: "pointer" }}>
             Home
           </li>
-          <li>Services</li>
-          <li>About Us</li>
-          <li>Contact</li>
+          
+          
+          <li style={{ opacity: 0.5, cursor: "not-allowed" }}>Services</li>
+          
+          {/* About Us leads to SignPage and scrolls to the 'about' section in the footer */}
+          <li 
+            onClick={() => navigate(VIEWS.SIGN_IN, { state: { scrollTo: "about" } })} 
+            style={{ cursor: "pointer" }}
+          >
+            About Us
+          </li>
+          
+          {/* Contact leads to SignPage and scrolls to the 'contact' section in the footer */}
+          <li 
+            onClick={() => navigate(VIEWS.SIGN_IN, { state: { scrollTo: "contact" } })} 
+            style={{ cursor: "pointer" }}
+          >
+            Contact
+          </li>
         </ul>
       </div>
 
       <div className="hero-section" style={{ paddingTop: "50px", paddingBottom: "40px" }}>
         <div className="card-common account-card" style={{ maxWidth: "500px", margin: "0 auto" }}>
 
-          {/* Toggle */}
+          {/* Toggle View Controller */}
           <div
             style={{
               display: "flex",
@@ -123,67 +155,82 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
           <form onSubmit={onSubmit} style={{ width: "100%", textAlign: "left" }}>
 
+            {/* INDIVIDUAL CONDITIONAL FIELDS */}
             {registrationType === "INDIVIDUAL" && (
               <>
                 <div className="input-field">
                   <label>First Name</label>
-                  <input name="firstName" onChange={handleChange} required className="admin-input" />
+                  <input name="firstName" value={formData.firstName} onChange={handleChange} required className="admin-input" />
                 </div>
 
                 <div className="input-field">
                   <label>Last Name</label>
-                  <input name="lastName" onChange={handleChange} required className="admin-input" />
+                  <input name="lastName" value={formData.lastName} onChange={handleChange} required className="admin-input" />
                 </div>
 
                 <div className="input-field">
                   <label>Phone Number</label>
-                  <input name="phoneNumber" onChange={handleChange} required className="admin-input" />
+                  <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required className="admin-input" />
                 </div>
 
                 <div className="input-field">
                   <label>Date of Birth</label>
-                  <input name="dob" type="date" onChange={handleChange} required className="admin-input" />
+                  <input name="dob" type="date" value={formData.dob} onChange={handleChange} required className="admin-input" />
                 </div>
               </>
             )}
 
+            {/* ORGANIZATION CONDITIONAL FIELDS */}
             {registrationType === "ORGANIZATION" && (
               <>
                 <div className="input-field">
                   <label>Organization Name</label>
-                  <input name="orgName" onChange={handleChange} required className="admin-input" />
+                  <input name="orgName" value={formData.orgName} onChange={handleChange} required className="admin-input" />
+                </div>
+
+                <div className="input-field">
+                  <label>Organization Registration Number</label>
+                  <input 
+                    name="regNumber" 
+                    placeholder="e.g. REG-12345"
+                    value={formData.regNumber} 
+                    onChange={handleChange} 
+                    required 
+                    className="admin-input" 
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Contact Person</label>
-                  <input name="contactPerson" onChange={handleChange} required className="admin-input" />
+                  <input name="contactPerson" value={formData.contactPerson} onChange={handleChange} required className="admin-input" />
                 </div>
 
                 <div className="input-field">
                   <label>Contact Number</label>
-                  <input name="contactNumber" onChange={handleChange} required className="admin-input" />
+                  <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} required className="admin-input" />
                 </div>
               </>
             )}
 
+            {/* SHARED COMMON FIELDS */}
             <div className="input-field">
               <label>Address</label>
-              <input name="address" onChange={handleChange} required className="admin-input" />
+              <input name="address" value={formData.address} onChange={handleChange} required className="admin-input" />
             </div>
 
             <div className="input-field">
               <label>Email</label>
-              <input name="email" type="email" onChange={handleChange} required className="admin-input" />
+              <input name="email" type="email" value={formData.email} onChange={handleChange} required className="admin-input" />
             </div>
 
             <div className="input-field">
               <label>Password</label>
-              <input name="password" type="password" onChange={handleChange} required className="admin-input" />
+              <input name="password" type="password" value={formData.password} onChange={handleChange} required className="admin-input" />
             </div>
 
             <div className="input-field">
               <label>Confirm Password</label>
-              <input name="confirmPassword" type="password" onChange={handleChange} required className="admin-input" />
+              <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required className="admin-input" />
             </div>
 
             <button type="submit" className="cta-button" style={buttonStyle}>
@@ -219,7 +266,7 @@ const buttonStyle = {
   borderRadius: "16px",
   fontWeight: "bold",
   marginTop: "10px",
-  cursor: "pointer",
+  cursor: "pointer",                  
   border: "none",
   display: "block",
   marginLeft: "auto",
