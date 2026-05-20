@@ -7,17 +7,19 @@ import DashboardOrganization from "./DashboardOrganization";
 import { UsersManagement } from "../features/UsersManagement";
 import { AddUserForm } from "../../users/pages/AddUserForm";
 import { IssuesPanel } from "../../issues/pages/IssuesPanel";
+import OrganizationSettings from "./OrganizationSettings";
 
 // Individual Components
 import DetectionPage from "../../detection/pages/DetectionPage";
 import ProgressPage from "./ProgressPage";
 import LearnPage from "../../learning/pages/LearnPage";
+import IndividualSettings from "./IndividualSettings";
 
 // Images
-import signDetectionIcon from "../../../assets/sign_detection_icon.png";
-import gamifiedLearningIcon from "../../../assets/gamified_learning_icon.png";
-import progressReportIcon from "../../../assets/progress_report_icon.png";
-import settingsIcon from "../../../assets/settings_icon.png";
+import signDetectionIcon from "../../../assets/sign_detection_icon.jpg";
+import gamifiedLearningIcon from "../../../assets/gamified_learning_icon.jpg";
+import progressReportIcon from "../../../assets/progress_report_icon.jpg";
+import settingsIcon from "../../../assets/settings_icon.jpg";
 import profileIcon from "../../../assets/profile.png";
 
 const VIEWS = {
@@ -40,11 +42,11 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
 
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-  // 🔥 FIX 1: force correct userType from storage fallback
+  // force correct userType from storage fallback
   const storedUserType = localStorage.getItem("userType");
   const finalUserType = userType || storedUserType || "INDIVIDUAL";
 
-  // 🔥 FIX 2: normalize orgId from multiple sources
+  // normalize orgId from multiple sources
   const storedOrgId = localStorage.getItem("orgId");
   const finalOrgId = orgId || storedOrgId || null;
 
@@ -112,12 +114,13 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
     if (currentView === VIEWS.LEARN)
       return <LearnPage navigate={navigate} />;
 
-    if (currentView === VIEWS.SETTINGS)
-      return (
-        <div style={{ color: "white", padding: "20px" }}>
-          Settings Coming Soon
-        </div>
-      );
+   if (currentView === VIEWS.SETTINGS)
+  return isOrg ? (
+    <OrganizationSettings />
+  ) : (
+    <IndividualSettings />
+  );
+      
 
     if (currentView === VIEWS.DASHBOARD) {
       return isOrg ? (
@@ -181,8 +184,31 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
                   <p className="feature-description">{card.description}</p>
                 </div>
 
-                <div className="feature-image-container">
-                  <img src={card.imageSrc} alt={card.title} />
+                {/* Container box with a protective padding so edges don't touch card walls */}
+                <div 
+                  className="feature-image-container" 
+                  style={{ 
+                    display: "flex", 
+                    alignItems: "center", 
+                    justifyContent: "center", 
+                    overflow: "hidden",
+                    padding: "10px",
+                    boxSizing: "border-box"
+                  }}
+                >
+                  {/* 🔥 FORCE OVERRIDE IMMUNITY STYLES */}
+                  <img 
+                    src={card.imageSrc} 
+                    alt={card.title} 
+                    style={{
+                      width: "auto",         /* Prevents stretching out horizontally */
+                      height: "auto",        /* Prevents stretching out vertically */
+                      maxWidth: "180%",      /* Locks it safely inside the container width */
+                      maxHeight: "180%",     /* Locks it safely inside the container height */
+                      objectFit: "contain",  /* Keeps proportional bounding box scaling intact */
+                      display: "block"
+                    }}
+                  />
                 </div>
               </div>
             ))}

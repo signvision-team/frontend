@@ -10,7 +10,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     phoneNumber: "",
     dob: "",
     orgName: "",
-    regNumber: "", // Tracking state field for the registration number
+    regNumber: "",
     contactPerson: "",
     contactNumber: "",
     address: "",
@@ -43,6 +43,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
       password: formData.password.trim(),
       address: formData.address.trim(),
       userType: registrationType,
+
       ...(registrationType === "INDIVIDUAL"
         ? {
             firstName: formData.firstName.trim(),
@@ -52,7 +53,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
           }
         : {
             orgName: formData.orgName.trim(),
-            regNumber: formData.regNumber.trim(), // Added to organization config payload
+            regNumber: formData.regNumber.trim(),
             contactPerson: formData.contactPerson.trim(),
             contactNumber: formData.contactNumber.trim()
           })
@@ -64,7 +65,9 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
       if (response?.success) {
         if (registrationType === "ORGANIZATION") {
           alert(
-            `🎉 Organization Registered Successfully!\n\nYour Organization ID:\n👉 ${response.organizationId || "NOT RECEIVED"}`
+            `🎉 Organization Registered Successfully!\n\nYour Organization ID:\n👉 ${
+              response.organizationId || "NOT RECEIVED"
+            }`
           );
         } else {
           alert("🎉 Account created successfully!");
@@ -82,44 +85,108 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
   return (
     <div className="landing-page-wrapper">
+{/* HEADER */}
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "20px 50px",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100
+  }}
+>
 
-      <div className="corner-logo-container">
-        <img src={svLogo} alt="SignVision" style={{ height: "150px" }} />
-      </div>
+  {/* LOGO */}
+  <div className="corner-logo-container">
+    <img
+      src={svLogo}
+      alt="SignVision"
+      style={{ height: "150px" }}
+    />
+  </div>
 
-      {/* ✅ CORRECTED NAVBAR SECTION WITH SCROLL TARGET ACTIONS */}
-      <div className="navbar">
-        <ul className="navbar-links">
-          {/* Home leads cleanly to the top of SignPage */}
-          <li onClick={() => navigate(VIEWS.SIGN_IN)} style={{ cursor: "pointer" }}>
-            Home
-          </li>
-          
-          
-          <li style={{ opacity: 0.5, cursor: "not-allowed" }}>Services</li>
-          
-          {/* About Us leads to SignPage and scrolls to the 'about' section in the footer */}
-          <li 
-            onClick={() => navigate(VIEWS.SIGN_IN, { state: { scrollTo: "about" } })} 
-            style={{ cursor: "pointer" }}
-          >
-            About Us
-          </li>
-          
-          {/* Contact leads to SignPage and scrolls to the 'contact' section in the footer */}
-          <li 
-            onClick={() => navigate(VIEWS.SIGN_IN, { state: { scrollTo: "contact" } })} 
-            style={{ cursor: "pointer" }}
-          >
-            Contact
-          </li>
-        </ul>
-      </div>
+  {/* NAVBAR RIGHT SIDE */}
+  <div
+    style={{
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center"
+    }}
+  >
+    <ul
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "35px",
+        listStyle: "none",
+        margin: 0,
+        padding: 0
+      }}
+    >
 
-      <div className="hero-section" style={{ paddingTop: "50px", paddingBottom: "40px" }}>
-        <div className="card-common account-card" style={{ maxWidth: "500px", margin: "0 auto" }}>
+      {/* HOME */}
+      <li
+        onClick={() => navigate(VIEWS.SIGN_IN)}
+        style={{
+          cursor: "pointer",
+          color: "#ffffff",
+          fontWeight: "600",
+          fontSize: "1.05rem"
+        }}
+      >
+        Home
+      </li>
 
-          {/* Toggle View Controller */}
+      {/* ABOUT US */}
+      <li
+        onClick={() => {
+          navigate(VIEWS.SIGN_IN);
+
+          setTimeout(() => {
+            const footer =
+              document.getElementById("footer");
+
+            if (footer) {
+              footer.scrollIntoView({
+                behavior: "smooth"
+              });
+            }
+          }, 300);
+        }}
+        style={{
+          cursor: "pointer",
+          color: "#ffffff",
+          fontWeight: "600",
+          fontSize: "1.05rem"
+        }}
+      >
+        About Us
+      </li>
+
+    </ul>
+  </div>
+</div>
+      {/* HERO SECTION */}
+      <div
+        className="hero-section"
+        style={{
+          paddingTop: "50px",
+          paddingBottom: "40px"
+        }}
+      >
+        <div
+          className="card-common account-card"
+          style={{
+            maxWidth: "500px",
+            margin: "0 auto"
+          }}
+        >
+
+          {/* TOGGLE BUTTONS */}
           <div
             style={{
               display: "flex",
@@ -147,100 +214,182 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
             </button>
           </div>
 
-          <h2 className="account-title" style={{ marginBottom: "20px" }}>
+          <h2
+            className="account-title"
+            style={{ marginBottom: "20px" }}
+          >
             {registrationType === "INDIVIDUAL"
               ? "Create Account"
               : "Organization Registry"}
           </h2>
 
-          <form onSubmit={onSubmit} style={{ width: "100%", textAlign: "left" }}>
+          <form
+            onSubmit={onSubmit}
+            style={{
+              width: "100%",
+              textAlign: "left"
+            }}
+          >
 
-            {/* INDIVIDUAL CONDITIONAL FIELDS */}
+            {/* INDIVIDUAL FIELDS */}
             {registrationType === "INDIVIDUAL" && (
               <>
                 <div className="input-field">
                   <label>First Name</label>
-                  <input name="firstName" value={formData.firstName} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Last Name</label>
-                  <input name="lastName" value={formData.lastName} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Phone Number</label>
-                  <input name="phoneNumber" value={formData.phoneNumber} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Date of Birth</label>
-                  <input name="dob" type="date" value={formData.dob} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="dob"
+                    type="date"
+                    value={formData.dob}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
               </>
             )}
 
-            {/* ORGANIZATION CONDITIONAL FIELDS */}
+            {/* ORGANIZATION FIELDS */}
             {registrationType === "ORGANIZATION" && (
               <>
                 <div className="input-field">
                   <label>Organization Name</label>
-                  <input name="orgName" value={formData.orgName} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="orgName"
+                    value={formData.orgName}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Organization Registration Number</label>
-                  <input 
-                    name="regNumber" 
+                  <input
+                    name="regNumber"
                     placeholder="e.g. REG-12345"
-                    value={formData.regNumber} 
-                    onChange={handleChange} 
-                    required 
-                    className="admin-input" 
+                    value={formData.regNumber}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
                   />
                 </div>
 
                 <div className="input-field">
                   <label>Contact Person</label>
-                  <input name="contactPerson" value={formData.contactPerson} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="contactPerson"
+                    value={formData.contactPerson}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
 
                 <div className="input-field">
                   <label>Contact Number</label>
-                  <input name="contactNumber" value={formData.contactNumber} onChange={handleChange} required className="admin-input" />
+                  <input
+                    name="contactNumber"
+                    value={formData.contactNumber}
+                    onChange={handleChange}
+                    required
+                    className="admin-input"
+                  />
                 </div>
               </>
             )}
 
-            {/* SHARED COMMON FIELDS */}
+            {/* COMMON FIELDS */}
             <div className="input-field">
               <label>Address</label>
-              <input name="address" value={formData.address} onChange={handleChange} required className="admin-input" />
+              <input
+                name="address"
+                value={formData.address}
+                onChange={handleChange}
+                required
+                className="admin-input"
+              />
             </div>
 
             <div className="input-field">
               <label>Email</label>
-              <input name="email" type="email" value={formData.email} onChange={handleChange} required className="admin-input" />
+              <input
+                name="email"
+                type="email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+                className="admin-input"
+              />
             </div>
 
             <div className="input-field">
               <label>Password</label>
-              <input name="password" type="password" value={formData.password} onChange={handleChange} required className="admin-input" />
+              <input
+                name="password"
+                type="password"
+                value={formData.password}
+                onChange={handleChange}
+                required
+                className="admin-input"
+              />
             </div>
 
             <div className="input-field">
               <label>Confirm Password</label>
-              <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} required className="admin-input" />
+              <input
+                name="confirmPassword"
+                type="password"
+                value={formData.confirmPassword}
+                onChange={handleChange}
+                required
+                className="admin-input"
+              />
             </div>
 
-            <button type="submit" className="cta-button" style={buttonStyle}>
+            <button
+              type="submit"
+              className="cta-button"
+              style={buttonStyle}
+            >
               {registrationType === "INDIVIDUAL"
                 ? "Sign Up"
                 : "Register Organization"}
             </button>
 
           </form>
-
         </div>
       </div>
     </div>
@@ -254,7 +403,9 @@ const toggleButtonStyle = (isActive) => ({
   cursor: "pointer",
   fontWeight: "bold",
   borderRadius: "8px",
-  backgroundColor: isActive ? "#4a67ff" : "rgba(255,255,255,0.1)",
+  backgroundColor: isActive
+    ? "#4a67ff"
+    : "rgba(255,255,255,0.1)",
   color: isActive ? "#fff" : "#ccc"
 });
 
@@ -266,7 +417,7 @@ const buttonStyle = {
   borderRadius: "16px",
   fontWeight: "bold",
   marginTop: "10px",
-  cursor: "pointer",                  
+  cursor: "pointer",
   border: "none",
   display: "block",
   marginLeft: "auto",
