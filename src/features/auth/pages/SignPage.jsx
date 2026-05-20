@@ -5,7 +5,7 @@ const SignPage = ({ navigate, VIEWS, setUserType, handleLogin }) => {
   const [formData, setFormData] = useState({
     email: "",
     password: "",
-    orgId: ""
+    regNumber: ""
   });
 
   // Reference to hook up scrolling if redirected from another page
@@ -15,41 +15,47 @@ const SignPage = ({ navigate, VIEWS, setUserType, handleLogin }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   useEffect(() => {
-    setFormData({ email: "", password: "", orgId: "" });
+    setFormData({ email: "", password: "", regNumber: "" });
   }, [loginType]);
 
   const onSubmit = async (e) => {
-    e.preventDefault();
-    const payload = {
-      email: formData.email.trim(),
-      password: formData.password.trim(),
-      userType: loginType,
-      orgID: loginType === "ORGANIZATION" ? formData.orgId.trim() : null,
-    };
+  e.preventDefault();
 
-    try {
-      const result = await handleLogin(payload);
-      if (result && result.success) {
-        const backendUserType = result.user?.userType;
-        const finalUserType = backendUserType || loginType;
-        if (setUserType) setUserType(finalUserType);
-
-        localStorage.setItem("user", JSON.stringify(result.user));
-        localStorage.setItem("token", result.token);
-        localStorage.setItem("userType", finalUserType);
-
-        const orgIdValue = result.user?.orgID || result.user?.orgId || result.user?.organizationId || null;
-        if (orgIdValue) localStorage.setItem("orgId", orgIdValue);
-
-        navigate(VIEWS.DASHBOARD);
-      } else {
-        alert(result?.message || "Login failed");
-      }
-    } catch (err) {
-      console.error("Login component error:", err);
-      alert("An unexpected error occurred. Please check backend.");
-    }
+  const payload = {
+    email: formData.email.trim(),
+    password: formData.password.trim(),
+    userType: loginType,
+    regNumber: loginType === "ORGANIZATION" ? formData.regNumber.trim() : null,
   };
+
+  try {
+    const result = await handleLogin(payload);
+    if (result && result.success) {
+      const backendUserType = result.user?.userType;
+      const finalUserType = backendUserType || loginType;
+      if (setUserType) setUserType(finalUserType);
+
+      localStorage.setItem("user", JSON.stringify(result.user));
+      localStorage.setItem("token", result.token);
+      localStorage.setItem("userType", finalUserType);
+
+      const orgIdValue =
+        result.user?.orgID ||
+        result.user?.orgId ||
+        result.user?.organizationId ||
+        null;
+
+      if (orgIdValue) localStorage.setItem("orgId", orgIdValue);
+
+      navigate(VIEWS.DASHBOARD);
+    } else {
+      alert(result?.message || "Login failed");
+    }
+  } catch (err) {
+    console.error("Login component error:", err);
+    alert("An unexpected error occurred. Please check backend.");
+  }
+};
 
   const inputStyle = {
     backgroundColor: "rgba(30, 30, 47, 0.8)",
