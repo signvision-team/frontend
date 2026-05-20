@@ -110,7 +110,10 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
       return <ProgressPage navigate={navigate} />;
 
     if (currentView === VIEWS.LEARN)
-      return <LearnPage navigate={navigate} />;
+      <LearnPage
+   navigate={navigate}
+   userData={userData}
+/>
 
     if (currentView === VIEWS.SETTINGS)
       return (
