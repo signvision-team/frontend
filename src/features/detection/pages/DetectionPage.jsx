@@ -3,7 +3,7 @@ import { Camera as CameraIcon, ArrowLeft } from "lucide-react";
 import { Hands } from "@mediapipe/hands";
 import { Camera } from "@mediapipe/camera_utils";
 
-const API_URL = "https://detection-dcmj.onrender.com/predict";
+const API_URL = `${import.meta.env.VITE_DETECTION_API}/predict`;
 
 const DetectionPage = ({ navigate }) => {
     const [isActive, setIsActive] = useState(false);
