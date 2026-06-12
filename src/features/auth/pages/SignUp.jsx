@@ -2,11 +2,7 @@ import React, { useState } from "react";
 import svLogo from "../../../assets/svLogo.png";
 
 const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
-
   const [registrationType, setRegistrationType] = useState("INDIVIDUAL");
-
-  const [showOrgPopup, setShowOrgPopup] = useState(false);
-  const [generatedOrgID, setGeneratedOrgID] = useState("");
 
   const [formData, setFormData] = useState({
     firstName: "",
@@ -24,10 +20,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
   });
 
   const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
   const onSubmit = async (e) => {
@@ -40,12 +33,8 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
     let finalDob = formData.dob;
 
-    if (
-      registrationType === "INDIVIDUAL" &&
-      finalDob.includes("/")
-    ) {
+    if (registrationType === "INDIVIDUAL" && finalDob.includes("/")) {
       const [day, month, year] = finalDob.split("/");
-
       finalDob = `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}`;
     }
 
@@ -71,110 +60,117 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     };
 
     try {
-
       const response = await handleSignUp(payload);
 
       if (response?.success) {
-
-        const orgID =
-          response?.orgID ||
-          response?.organizationId ||
-          null;
-
-        // ✅ ORGANIZATION SUCCESS
         if (registrationType === "ORGANIZATION") {
-
-          setGeneratedOrgID(orgID || "NOT RECEIVED");
-
-          setShowOrgPopup(true);
-
-          // ✅ Auto copy
-          if (orgID) {
-            await navigator.clipboard.writeText(orgID);
-          }
-
+          alert(
+            `🎉 Organization Registered Successfully!\n\nYour Organization ID:\n👉 ${
+              response.organizationId || "NOT RECEIVED"
+            }`
+          );
         } else {
-
-          // ✅ INDIVIDUAL SUCCESS
           alert("🎉 Account created successfully!");
-
-          navigate(VIEWS.SIGN_IN);
         }
 
+        navigate(VIEWS.SIGN_IN);
       } else {
-
         alert(response?.message || "Signup failed");
-
       }
-
     } catch (error) {
-
       console.error(error);
-
       alert("Server error during signup");
     }
   };
 
   return (
     <div className="landing-page-wrapper">
+{/* HEADER */}
+<div
+  style={{
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: "20px 50px",
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 100
+  }}
+>
 
-      {/* LOGO */}
-      <div className="corner-logo-container">
-        <img
-          src={svLogo}
-          alt="SignVision"
-          style={{ height: "150px" }}
-        />
-      </div>
+  {/* LOGO */}
+  <div className="corner-logo-container">
+    <img
+      src={svLogo}
+      alt="SignVision"
+      style={{ height: "150px" }}
+    />
+  </div>
 
-      {/* NAVBAR */}
-      <div className="navbar">
+  {/* NAVBAR RIGHT SIDE */}
+  <div
+    style={{
+      marginLeft: "auto",
+      display: "flex",
+      alignItems: "center"
+    }}
+  >
+    <ul
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "35px",
+        listStyle: "none",
+        margin: 0,
+        padding: 0
+      }}
+    >
 
-        <ul className="navbar-links">
+      {/* HOME */}
+      <li
+        onClick={() => navigate(VIEWS.SIGN_IN)}
+        style={{
+          cursor: "pointer",
+          color: "#ffffff",
+          fontWeight: "600",
+          fontSize: "1.05rem"
+        }}
+      >
+        Home
+      </li>
 
-          <li
-            onClick={() => navigate(VIEWS.SIGN_IN)}
-            style={{ cursor: "pointer" }}
-          >
-            Home
-          </li>
+      {/* ABOUT US */}
+      <li
+        onClick={() => {
+          navigate(VIEWS.SIGN_IN);
 
-          <li
-            style={{
-              opacity: 0.5,
-              cursor: "not-allowed"
-            }}
-          >
-            Services
-          </li>
+          setTimeout(() => {
+            const footer =
+              document.getElementById("footer");
 
-          <li
-            onClick={() =>
-              navigate(VIEWS.SIGN_IN, {
-                state: { scrollTo: "about" }
-              })
+            if (footer) {
+              footer.scrollIntoView({
+                behavior: "smooth"
+              });
             }
-            style={{ cursor: "pointer" }}
-          >
-            About Us
-          </li>
+          }, 300);
+        }}
+        style={{
+          cursor: "pointer",
+          color: "#ffffff",
+          fontWeight: "600",
+          fontSize: "1.05rem"
+        }}
+      >
+        About Us
+      </li>
 
-          <li
-            onClick={() =>
-              navigate(VIEWS.SIGN_IN, {
-                state: { scrollTo: "contact" }
-              })
-            }
-            style={{ cursor: "pointer" }}
-          >
-            Contact
-          </li>
-
-        </ul>
-
-      </div>
-
-      {/* MAIN SECTION */}
+    </ul>
+  </div>
+</div>
+      {/* HERO SECTION */}
       <div
         className="hero-section"
         style={{
@@ -182,7 +178,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
           paddingBottom: "40px"
         }}
       >
-
         <div
           className="card-common account-card"
           style={{
@@ -191,7 +186,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
           }}
         >
 
-          {/* TOGGLE */}
+          {/* TOGGLE BUTTONS */}
           <div
             style={{
               display: "flex",
@@ -202,34 +197,23 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
               borderRadius: "10px"
             }}
           >
-
             <button
               type="button"
-              style={toggleButtonStyle(
-                registrationType === "INDIVIDUAL"
-              )}
-              onClick={() =>
-                setRegistrationType("INDIVIDUAL")
-              }
+              style={toggleButtonStyle(registrationType === "INDIVIDUAL")}
+              onClick={() => setRegistrationType("INDIVIDUAL")}
             >
               Individual
             </button>
 
             <button
               type="button"
-              style={toggleButtonStyle(
-                registrationType === "ORGANIZATION"
-              )}
-              onClick={() =>
-                setRegistrationType("ORGANIZATION")
-              }
+              style={toggleButtonStyle(registrationType === "ORGANIZATION")}
+              onClick={() => setRegistrationType("ORGANIZATION")}
             >
               Organization
             </button>
-
           </div>
 
-          {/* TITLE */}
           <h2
             className="account-title"
             style={{ marginBottom: "20px" }}
@@ -239,7 +223,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
               : "Organization Registry"}
           </h2>
 
-          {/* FORM */}
           <form
             onSubmit={onSubmit}
             style={{
@@ -248,13 +231,11 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
             }}
           >
 
-            {/* INDIVIDUAL */}
+            {/* INDIVIDUAL FIELDS */}
             {registrationType === "INDIVIDUAL" && (
               <>
-
                 <div className="input-field">
                   <label>First Name</label>
-
                   <input
                     name="firstName"
                     value={formData.firstName}
@@ -266,7 +247,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
                 <div className="input-field">
                   <label>Last Name</label>
-
                   <input
                     name="lastName"
                     value={formData.lastName}
@@ -278,7 +258,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
                 <div className="input-field">
                   <label>Phone Number</label>
-
                   <input
                     name="phoneNumber"
                     value={formData.phoneNumber}
@@ -290,7 +269,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
                 <div className="input-field">
                   <label>Date of Birth</label>
-
                   <input
                     name="dob"
                     type="date"
@@ -300,17 +278,14 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
                     className="admin-input"
                   />
                 </div>
-
               </>
             )}
 
-            {/* ORGANIZATION */}
+            {/* ORGANIZATION FIELDS */}
             {registrationType === "ORGANIZATION" && (
               <>
-
                 <div className="input-field">
                   <label>Organization Name</label>
-
                   <input
                     name="orgName"
                     value={formData.orgName}
@@ -321,10 +296,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
                 </div>
 
                 <div className="input-field">
-                  <label>
-                    Organization Registration Number
-                  </label>
-
+                  <label>Organization Registration Number</label>
                   <input
                     name="regNumber"
                     placeholder="e.g. REG-12345"
@@ -337,7 +309,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
                 <div className="input-field">
                   <label>Contact Person</label>
-
                   <input
                     name="contactPerson"
                     value={formData.contactPerson}
@@ -349,7 +320,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
                 <div className="input-field">
                   <label>Contact Number</label>
-
                   <input
                     name="contactNumber"
                     value={formData.contactNumber}
@@ -358,15 +328,12 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
                     className="admin-input"
                   />
                 </div>
-
               </>
             )}
 
             {/* COMMON FIELDS */}
-
             <div className="input-field">
               <label>Address</label>
-
               <input
                 name="address"
                 value={formData.address}
@@ -378,7 +345,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
             <div className="input-field">
               <label>Email</label>
-
               <input
                 name="email"
                 type="email"
@@ -391,7 +357,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
             <div className="input-field">
               <label>Password</label>
-
               <input
                 name="password"
                 type="password"
@@ -404,7 +369,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
 
             <div className="input-field">
               <label>Confirm Password</label>
-
               <input
                 name="confirmPassword"
                 type="password"
@@ -415,7 +379,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
               />
             </div>
 
-            {/* BUTTON */}
             <button
               type="submit"
               className="cta-button"
@@ -427,136 +390,8 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
             </button>
 
           </form>
-
         </div>
-
       </div>
-
-      {/* ✅ ORG ID POPUP */}
-      {showOrgPopup && (
-        <div
-          style={{
-            position: "fixed",
-            top: 0,
-            left: 0,
-            width: "100%",
-            height: "100%",
-            background: "rgba(0,0,0,0.6)",
-            display: "flex",
-            justifyContent: "center",
-            alignItems: "center",
-            zIndex: 9999
-          }}
-        >
-
-          <div
-            style={{
-              background: "#fff",
-              padding: "30px",
-              borderRadius: "15px",
-              width: "350px",
-              textAlign: "center"
-            }}
-          >
-
-            <h2
-              style={{
-                marginBottom: "15px",
-                color: "#333"
-              }}
-            >
-              🎉 Organization Registered
-            </h2>
-
-            <p
-              style={{
-                marginBottom: "10px",
-                color: "#555"
-              }}
-            >
-              Your Organization ID:
-            </p>
-
-            <div
-              style={{
-                background: "#f1f1f1",
-                padding: "12px",
-                borderRadius: "8px",
-                fontWeight: "bold",
-                marginBottom: "20px",
-                fontSize: "18px"
-              }}
-            >
-              {generatedOrgID}
-            </div>
-
-            <p
-              style={{
-                fontSize: "13px",
-                color: "#777",
-                marginBottom: "20px"
-              }}
-            >
-              ID copied to clipboard automatically
-            </p>
-
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "center",
-                gap: "10px"
-              }}
-            >
-
-              {/* COPY BUTTON */}
-              <button
-                onClick={() => {
-                  navigator.clipboard.writeText(
-                    generatedOrgID
-                  );
-
-                  alert("Organization ID copied!");
-                }}
-                style={{
-                  padding: "10px 18px",
-                  background: "#4a67ff",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold"
-                }}
-              >
-                Copy ID
-              </button>
-
-              {/* CONTINUE BUTTON */}
-              <button
-                onClick={() => {
-                  setShowOrgPopup(false);
-
-                  navigate(VIEWS.SIGN_IN);
-                }}
-                style={{
-                  padding: "10px 18px",
-                  background: "#333",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "8px",
-                  cursor: "pointer",
-                  fontWeight: "bold"
-                }}
-              >
-                Continue
-              </button>
-
-            </div>
-
-          </div>
-
-        </div>
-      )}
-
     </div>
   );
 };

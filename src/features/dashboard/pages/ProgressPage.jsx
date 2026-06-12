@@ -208,7 +208,7 @@ const ProgressPage = ({ navigate }) => {
             e.currentTarget.style.color = "#60a5fa";
           }}
         >
-          ← Back to Dashboard
+          Back to Dashboard
         </span>
 
       </div>

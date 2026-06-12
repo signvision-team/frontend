@@ -189,15 +189,78 @@ const DetectionPage = ({ navigate }) => {
                     <strong>Sentence:</strong> {sentence}
                 </div>
 
-                <div className="btn-group">
-                    <button onClick={isActive ? stopDetection : startDetection}>
-                        {isActive ? "Stop" : "Start"}
-                    </button>
+                <div
+  className="btn-group"
+  style={{
+    display: "flex",
+    gap: "16px",
+    justifyContent: "center",
+    marginTop: "25px",
+    flexWrap: "wrap"
+  }}
+>
+  {/* START / STOP BUTTON */}
+  <button
+    onClick={
+      isActive
+        ? stopDetection
+        : startDetection
+    }
+    style={{
+      background: isActive
+        ? "linear-gradient(135deg, #ff4d4d, #d93636)"
+        : "linear-gradient(135deg, #4a67ff, #6d83ff)",
+      color: "#fff",
+      border: "none",
+      padding: "14px 30px",
+      borderRadius: "14px",
+      cursor: "pointer",
+      fontWeight: "700",
+      fontSize: "0.95rem",
+      letterSpacing: "0.5px",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      minWidth: "150px",
+      transition: "all 0.3s ease",
+      boxShadow: isActive
+        ? "0 10px 25px rgba(255,77,77,0.35)"
+        : "0 10px 25px rgba(74,103,255,0.35)"
+    }}
+  >
+    {isActive ? "Stop Detection" : "Start Detection"}
+  </button>
 
-                    <button onClick={() => navigate("DASHBOARD")}>
-                        <ArrowLeft size={18} /> Back
-                    </button>
-                </div>
+  {/* BACK BUTTON */}
+  <button
+    onClick={() =>
+      navigate("DASHBOARD")
+    }
+    style={{
+      background:
+        "rgba(255,255,255,0.06)",
+      color: "#fff",
+      border:
+        "1px solid rgba(255,255,255,0.12)",
+      padding: "14px 26px",
+      borderRadius: "14px",
+      cursor: "pointer",
+      fontWeight: "600",
+      fontSize: "0.95rem",
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "center",
+      gap: "10px",
+      minWidth: "140px",
+      backdropFilter: "blur(10px)",
+      transition: "all 0.3s ease"
+    }}
+  >
+    
+    Back
+  </button>
+</div>
 
             </div>
         </div>
