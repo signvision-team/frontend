@@ -5,7 +5,7 @@ import { Camera } from "@mediapipe/camera_utils";
 
 const API_URL = `${import.meta.env.VITE_DETECTION_API}/predict`;
 
-const DetectionPage = ({ navigate }) => {
+const DetectionPage = ({ navigate }) => { 
     const [isActive, setIsActive] = useState(false);
     const [prediction, setPrediction] = useState("");
     const [sentence, setSentence] = useState("");
@@ -106,11 +106,38 @@ const DetectionPage = ({ navigate }) => {
             const landmarks = results.multiHandLandmarks[0];
             if (!landmarks || landmarks.length !== 21) return;
 
-            const features = landmarks.flatMap((lm) => [lm.x, lm.y]);
+          const coords = landmarks.map((lm) => [
+    lm.x,
+    lm.y,
+    lm.z,
+]);
+
+const wrist = coords[0];
+
+const normalized = coords.map((p) => [
+    p[0] - wrist[0],
+    p[1] - wrist[1],
+    p[2] - wrist[2],
+]);
+
+const scale = Math.max(
+    ...normalized.flat().map((v) => Math.abs(v))
+);
+
+const features = normalized
+    .map((p) =>
+        scale > 0
+            ? [p[0] / scale, p[1] / scale, p[2] / scale]
+            : p
+    )
+    .flat();
 
             const now = Date.now();
-            if (now - lastApiCall.current < 300) return;
+            if (now - lastApiCall.current < 500) return;
             lastApiCall.current = now;
+            
+            console.log("Sending features:", features);
+            console.log("API URL:", API_URL);
 
             try {
                 const res = await fetch(API_URL, {
@@ -121,19 +148,13 @@ const DetectionPage = ({ navigate }) => {
 
                 const data = await res.json();
 
-                if (data.prediction) {
-                    predictionBufferRef.current.push(data.prediction);
+                if (data.sentence !== undefined) {
+    setSentence(data.sentence);
+}
 
-                    if (predictionBufferRef.current.length > 10) {
-                        predictionBufferRef.current.shift();
-                    }
-
-                    const stable = getStablePrediction(
-                        predictionBufferRef.current
-                    );
-
-                    setPrediction(stable);
-                }
+               if (data.stable_sign) {
+    setPrediction(data.stable_sign);
+}
             } catch (err) {
                 console.log("API ERROR:", err);
             }
@@ -150,13 +171,16 @@ const DetectionPage = ({ navigate }) => {
         camera.start();
         cameraRef.current = camera;
 
-        return () => {
-            camera.stop();
-            hands.close?.();
-        };
+       return () => {
+    if (cameraRef.current) {
+        cameraRef.current.stop();
+    }
+
+    handsRef.current?.close();
+};
     }, [isActive]);
 
-    return (
+     return (
         <div className="detection-page-wrapper">
             <div className="detection-card">
 

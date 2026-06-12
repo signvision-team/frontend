@@ -1,4 +1,5 @@
 const API_URL = "https://detection-dcmj.onrender.com";
+const API_URL = import.meta.env.VITE_AI_API || "http://127.0.0.1:8000/predict";
 
 export const predictSign = async (features) => {
   try {
