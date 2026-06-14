@@ -8,7 +8,12 @@ import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { X, CheckCircle, XCircle } from "lucide-react";
 import { getLessonDetail, completeLesson, submitQuizAnswer } from "../../api/learningApi";
+import FloatingQuiz from "../quiz/FloatingQuiz";
 
+// This takes "http://127.0.0.1:8000" and expands it safely to "http://127.0.0.1:8000/api/detection"
+const BASE_DETECTION_URL = import.meta.env.VITE_DETECTION_API 
+  ? `${import.meta.env.VITE_DETECTION_API}/api/detection`
+  : "http://127.0.0.1:8000/api/detection";
 export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const [lesson, setLesson]         = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -17,7 +22,11 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const [quizResult, setQuizResult] = useState(null);
   const [totalXP, setTotalXP]       = useState(0);
   const [completing, setCompleting] = useState(false);
+  
+  // Real-time AI prediction stream state variable
+  const [prediction, setPrediction] = useState(""); 
 
+  // Load lesson detail data
   useEffect(() => {
     let isMounted = true;
     const load = async () => {
@@ -34,6 +43,58 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
     return () => { isMounted = false; };
   }, [lessonId, userId]);
 
+  // ── 🛠️ REAL-TIME DETECTION API LIFECYCLE MANAGEMENT ──
+  useEffect(() => {
+    let intervalId = null;
+    let isCurrentStep = true; // Flag to instantly prevent asynchronous ghost requests
+
+    if (step === "quiz") {
+      console.log("🚀 Quiz started. Triggering backend sign language detection...");
+      
+      // 1. Tell the backend to initialize/start the camera model detection process
+      fetch(`${BASE_DETECTION_URL}/start`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, lesson_id: lessonId })
+      })
+      .then(res => res.json())
+      .catch(err => console.error("Failed to start detection API:", err));
+
+      // 2. Poll the prediction outcome frame results every 400ms
+      intervalId = setInterval(async () => {
+        try {
+          const res = await fetch(`${BASE_DETECTION_URL}/current/${userId}`);
+          
+          // Fast escape if the user leaves the step mid-fetch request
+          if (!isCurrentStep) return;
+
+          if (res.ok) {
+            const data = await res.json();
+            if (data.prediction) {
+              setPrediction(data.prediction.toUpperCase()); // Feeds floating bubbles
+            }
+          }
+        } catch (err) {
+          console.error("Error fetching live prediction frame:", err);
+        }
+      }, 400); 
+
+      // ── CLEANUP ON STEP CHANGE OR MODAL UNMOUNT ──
+      return () => {
+        isCurrentStep = false; // Block pending intervals immediately
+        if (intervalId) clearInterval(intervalId);
+        
+        console.log("🛑 Leaving quiz. Stopping backend sign language detection...");
+        
+        fetch(`${BASE_DETECTION_URL}/stop`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: userId })
+        }).catch(err => console.error("Failed to stop detection API:", err));
+      };
+    }
+  }, [step, userId, lessonId]);
+
   const getMedia = (role) =>
     lesson?.media?.find((m) => m.media_role === role)?.url || null;
 
@@ -49,8 +110,6 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
       try {
         const result = await completeLesson(lessonId, userId);
         setTotalXP((prev) => prev + (result.gamification?.xp_awarded || 0));
-        // Delay parent update notifications until the user clicks complete
-        // This stops LearnPage from re-rendering and tearing down the quiz early
         if (onComplete && questions.length === 0) {
           onComplete(lessonId, result.gamification);
         }
@@ -99,21 +158,19 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
         initial={{ opacity: 0, y: 30 }}
         animate={{ opacity: 1, y: 0 }}
         style={{
-          // ── GLASSMORPHISM BASE ──
-          background: "rgba(20, 20, 30, 0.75)", // Deep dark glass base
+          background: "rgba(20, 20, 30, 0.75)", 
           backdropFilter: "blur(16px)",
           WebkitBackdropFilter: "blur(16px)",
-          borderRadius: "24px", // Matches custom welcome radius
+          borderRadius: "24px", 
           padding: "35px",
           maxWidth: "1100px", 
           width: "100%",
           maxHeight: "90vh",
           overflowY: "auto", 
           position: "relative",
-          // ── WHITE COATING ALPHA BORDER ──
           border: "1px solid rgba(255, 255, 255, 0.15)", 
           boxShadow: "0 20px 50px rgba(0,0,0,0.4)",
-          color: "#ffffff", // Pure white readable text
+          color: "#ffffff", 
         }}
       >
         {/* Close Button */}
@@ -194,7 +251,7 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
               </div>
             </div>
 
-            {/* Bottom Row Description: Nested Inner Glass Box */}
+            {/* Bottom Row Description */}
             <div style={{ 
               marginTop: "24px", 
               backgroundColor: "rgba(255, 255, 255, 0.06)", 
@@ -223,56 +280,19 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
             <div style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "0.9rem", marginBottom: "12px", fontWeight: "500" }}>
               Question {currentQ + 1} of {questions.length}
             </div>
-            <h3 style={{ color: "#ffffff", marginBottom: "28px", fontSize: "1.4rem", fontWeight: "600" }}>
-              {currentQuestion.question_text || `Which sign matches the target letter "${lesson?.sign_letter}"?`}
-            </h3>
 
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: "16px" }}>
-              {currentQuestion.options.map((opt) => {
-                const isCorrect = quizResult && opt.option_text === quizResult.correct_answer;
-                const isWrong   = quizResult && opt.option_text !== quizResult.correct_answer && opt.option_text === quizResult.user_answer;
-                
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => !quizResult && handleAnswer(opt.option_text)}
-                    disabled={!!quizResult}
-                    style={{
-                      padding: "18px",
-                      borderRadius: "14px",
-                      fontWeight: "600",
-                      fontSize: "1rem",
-                      cursor: quizResult ? "default" : "pointer",
-                      transition: "all 0.2s ease",
-                      // Dynamic Glass Variants for quiz interaction
-                      border: isCorrect ? "2px solid #4ade80"
-                            : isWrong   ? "2px solid #f87171"
-                            : "1px solid rgba(255, 255, 255, 0.15)",
-                      background: isCorrect ? "rgba(74, 222, 128, 0.2)"
-                                : isWrong   ? "rgba(248, 113, 113, 0.2)"
-                                : "rgba(255, 255, 255, 0.06)",
-                      color: isCorrect ? "#4ade80" : isWrong ? "#f87171" : "#ffffff",
-                      boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (!quizResult) {
-                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.12)";
-                        e.currentTarget.style.borderColor = "var(--color-primary-cyan)";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (!quizResult) {
-                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.06)";
-                        e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.15)";
-                      }
-                    }}
-                  >
-                    {opt.option_text}
-                  </button>
-                );
-              })}
-            </div>
+            <FloatingQuiz 
+              lesson={lesson}
+              currentQuestion={currentQuestion}
+              detectedLetter={prediction} 
+              onCorrectDetection={(matchedLetter) => {
+                if (!quizResult) {
+                  handleAnswer(matchedLetter);
+                }
+              }}
+            />
 
+            {/* Status Answer Banner */}
             {quizResult && (
               <div style={{
                 marginTop: "28px", padding: "18px", borderRadius: "14px",
@@ -283,10 +303,10 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
                 {quizResult.is_correct ? <CheckCircle color="#4ade80" size={24} /> : <XCircle color="#f87171" size={24} />}
                 <div>
                   <div style={{ color: quizResult.is_correct ? "#4ade80" : "#f87171", fontWeight: "bold", fontSize: "1.1rem" }}>
-                    {quizResult.is_correct ? `Correct! +${quizResult.xp_awarded} XP` : "Incorrect Selection"}
+                    {quizResult.is_correct ? `Correct Sign Detected! +${quizResult.xp_awarded} XP` : "Incorrect Selection"}
                   </div>
                   {!quizResult.is_correct && (
-                    <div style={{ color: "#ccccccc", fontSize: "0.9rem", marginTop: "4px" }}>
+                    <div style={{ color: "#cccccc", fontSize: "0.9rem", marginTop: "4px" }}>
                       Correct option was: <strong style={{ color: "#ffffff" }}>{quizResult.correct_answer}</strong>
                     </div>
                   )}
@@ -327,8 +347,8 @@ function Overlay({ children, onClose }) {
       onClick={(e) => e.target === e.currentTarget && onClose()}
       style={{
         position: "fixed", inset: 0, zIndex: 9000,
-        background: "rgba(10, 10, 15, 0.45)", // Semi-transparent base layer
-        backdropFilter: "blur(8px)", // Native backdrop blurring layer
+        background: "rgba(10, 10, 15, 0.45)", 
+        backdropFilter: "blur(8px)", 
         display: "flex", alignItems: "center", justifyContent: "center",
         padding: "20px",
       }}
