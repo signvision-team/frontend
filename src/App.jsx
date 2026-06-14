@@ -1,38 +1,53 @@
 import React, { useState, useEffect } from "react";
 
 // Pages
-import SignPage from "./features/auth/pages/SignPage.jsx";
-import SignUp from "./features/auth/pages/SignUp.jsx";
-import Dashboard from "./features/dashboard/pages/Dashboard.jsx";
+import SignPage   from "./features/auth/pages/SignPage.jsx";
+import SignUp     from "./features/auth/pages/SignUp.jsx";
+import Dashboard  from "./features/dashboard/pages/Dashboard.jsx";
+
+// NEW: Chapter detail page (copy from the zip into src/pages/)
+import ChapterDetailPage from "./features/learning/pages/ChapterDetailPage.jsx";
 
 // API
 import { loginUser, signupUser } from "./api/authService.js";
 
+// NEW: streak update on login
+import { updateStreak } from "./api/gamificationApi.js";
+
 import "./App.css";
 
 const VIEWS = {
-  SIGN_IN: "SIGN_IN",
-  SIGN_UP_TYPE: "SIGN_UP_TYPE",
-  DASHBOARD: "DASHBOARD",
-  DETECTION: "DETECTION",
-  LEARN: "LEARN",
-  PROGRESS: "PROGRESS",
-  SETTINGS: "SETTINGS",
-  MEMBERS: "MEMBERS",
-  ADD_USER: "ADD_USER",
-  ISSUES: "ISSUES",
-  ANALYTICS: "ANALYTICS",
+  SIGN_IN:        "SIGN_IN",
+  SIGN_UP_TYPE:   "SIGN_UP_TYPE",
+  DASHBOARD:      "DASHBOARD",
+  DETECTION:      "DETECTION",
+  LEARN:          "LEARN",
+  PROGRESS:       "PROGRESS",
+  SETTINGS:       "SETTINGS",
+  MEMBERS:        "MEMBERS",
+  ADD_USER:       "ADD_USER",
+  ISSUES:         "ISSUES",
+  ANALYTICS:      "ANALYTICS",
+  LEADERBOARD:    "LEADERBOARD",    // ← NEW
+  CHAPTER_DETAIL: "CHAPTER_DETAIL", // ← NEW
 };
 
 const App = () => {
   const [currentView, setCurrentView] = useState(VIEWS.SIGN_IN);
-  const [userType, setUserType] = useState("INDIVIDUAL");
+  const [userType, setUserType]       = useState("INDIVIDUAL");
+  const [userData, setUserData]       = useState(null);
+  const [token, setToken]             = useState(null);
+  const [orgId, setOrgId]             = useState(null);
 
-  const [userData, setUserData] = useState(null);
-  const [token, setToken] = useState(null);
-  const [orgId, setOrgId] = useState(null);
+  // NEW: stores extra data when navigating (e.g. which chapter to open)
+  const [navState, setNavState] = useState(null);
 
-  const navigate = (view) => setCurrentView(view);
+  // Updated navigate — accepts optional extra data
+  // Usage: navigate("CHAPTER_DETAIL", { chapterId: 1 })
+  const navigate = (view, state = null) => {
+    setNavState(state);
+    setCurrentView(view);
+  };
 
   // =========================
   // AUTO LOGIN (DISABLED)
@@ -53,27 +68,24 @@ const App = () => {
 
         setUserData(user);
 
-        // ✅ FIXED: always trust form OR backend (no fallback bug)
         const type =
           user.userType ||
           formData?.userType ||
           "INDIVIDUAL";
 
         setUserType(type);
-
         setToken(data.token);
 
-        // ✅ FIXED: consistent orgId handling
         const organizationId =
           (type === "ORGANIZATION" || formData?.userType === "ORGANIZATION")
-            ? (user.orgId ||
-               user.orgID ||
-               user.organizationId ||
-               data.orgId ||
-               null)
+            ? (user.orgId || user.orgID || user.organizationId || data.orgId || null)
             : null;
 
         setOrgId(organizationId);
+
+        // ── NEW: update streak silently on login ─────────────
+        // Never blocks login even if gamification service is down
+        updateStreak(user.id).catch(() => {});
 
         setCurrentView(VIEWS.DASHBOARD);
         return true;
@@ -123,7 +135,7 @@ const App = () => {
     setToken(null);
     setOrgId(null);
     setUserType("INDIVIDUAL");
-
+    setNavState(null);
     setCurrentView(VIEWS.SIGN_IN);
   };
 
@@ -132,6 +144,7 @@ const App = () => {
   // =========================
   const renderView = () => {
     switch (currentView) {
+
       case VIEWS.SIGN_IN:
         return (
           <SignPage
@@ -150,6 +163,17 @@ const App = () => {
           />
         );
 
+      // ── NEW: Chapter detail (lesson list inside a chapter) ──
+      case VIEWS.CHAPTER_DETAIL:
+        return (
+          <ChapterDetailPage
+            navigate={navigate}
+            userData={userData}
+            chapterId={navState?.chapterId}
+          />
+        );
+
+      // ── All dashboard views (unchanged) ──────────────────────
       case VIEWS.DASHBOARD:
       case VIEWS.DETECTION:
       case VIEWS.LEARN:
@@ -159,6 +183,7 @@ const App = () => {
       case VIEWS.ADD_USER:
       case VIEWS.ISSUES:
       case VIEWS.ANALYTICS:
+      case VIEWS.LEADERBOARD:
         return (
           <Dashboard
             navigate={navigate}

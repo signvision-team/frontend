@@ -11,51 +11,52 @@ import OrganizationSettings from "./OrganizationSettings";
 
 // Individual Components
 import DetectionPage from "../../detection/pages/DetectionPage";
-import ProgressPage from "./ProgressPage";
-import LearnPage from "../../learning/pages/LearnPage";
 import IndividualSettings from "./IndividualSettings";
 
+// ── FIXED IMPORTS: paths match where YOU actually put the files ──
+import LearnPage    from "../../learning/pages/LearnPage.jsx";
+import ProgressPage from "./ProgressPage.jsx";
+import Leaderboard  from "../../learning/pages/Leaderboard.jsx";
+
 // Images
-import signDetectionIcon from "../../../assets/sign_detection_icon.jpg";
+import signDetectionIcon    from "../../../assets/sign_detection_icon.jpg";
 import gamifiedLearningIcon from "../../../assets/gamified_learning_icon.jpg";
-import progressReportIcon from "../../../assets/progress_report_icon.jpg";
-import settingsIcon from "../../../assets/settings_icon.jpg";
-import profileIcon from "../../../assets/profile.png";
+import progressReportIcon   from "../../../assets/progress_report_icon.jpg";
+import settingsIcon         from "../../../assets/settings_icon.jpg";
+import profileIcon          from "../../../assets/profile.png";
 
 const VIEWS = {
-  DASHBOARD: "DASHBOARD",
-  DETECTION: "DETECTION",
-  LEARN: "LEARN",
-  PROGRESS: "PROGRESS",
-  SETTINGS: "SETTINGS",
-
-  MEMBERS: "MEMBERS",
-  ADD_USER: "ADD_USER",
-  ANALYTICS: "ANALYTICS",
-  ISSUES: "ISSUES",
-
-  SIGN_IN: "SIGN_IN",
+  DASHBOARD:      "DASHBOARD",
+  DETECTION:      "DETECTION",
+  LEARN:          "LEARN",
+  PROGRESS:       "PROGRESS",
+  SETTINGS:       "SETTINGS",
+  MEMBERS:        "MEMBERS",
+  ADD_USER:       "ADD_USER",
+  ANALYTICS:      "ANALYTICS",
+  ISSUES:         "ISSUES",
+  SIGN_IN:        "SIGN_IN",
+  LEADERBOARD:    "LEADERBOARD",
+  CHAPTER_DETAIL: "CHAPTER_DETAIL",
 };
 
-const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
+const Dashboard = ({ navigate, currentView, userType, userData, orgId, onLogout }) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-
   const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
-  // force correct userType from storage fallback
   const storedUserType = localStorage.getItem("userType");
-  const finalUserType = userType || storedUserType || "INDIVIDUAL";
+  const finalUserType  = userType || storedUserType || "INDIVIDUAL";
 
-  // normalize orgId from multiple sources
   const storedOrgId = localStorage.getItem("orgId");
-  const finalOrgId = orgId || storedOrgId || null;
+  const finalOrgId  = orgId || storedOrgId || null;
 
   const isOrg = finalUserType === "ORGANIZATION";
 
   useEffect(() => {
     console.log("USER TYPE:", finalUserType);
     console.log("ORG ID:", finalOrgId);
-  }, [finalUserType, finalOrgId]);
+    console.log("USER DATA:", userData);   // ← added so you can verify userId
+  }, [finalUserType, finalOrgId, userData]);
 
   const featureCards = [
     {
@@ -86,44 +87,38 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
   ];
 
   const renderDashboardContent = () => {
+
+    // ── Organization views ────────────────────────────────────
     if (isOrg) {
       if (currentView === VIEWS.MEMBERS)
         return <UsersManagement orgId={finalOrgId} />;
-
       if (currentView === VIEWS.ADD_USER)
         return <AddUserForm orgId={finalOrgId} />;
-
       if (currentView === VIEWS.ISSUES)
         return <IssuesPanel orgId={finalOrgId} />;
-
-      if (currentView === VIEWS.ANALYTICS) {
+      if (currentView === VIEWS.ANALYTICS)
         return (
           <div style={{ color: "white", padding: "20px" }}>
             Analytics Coming Soon (Org: {finalOrgId})
           </div>
         );
-      }
     }
 
     if (currentView === VIEWS.DETECTION)
       return <DetectionPage navigate={navigate} />;
 
-    if (currentView === VIEWS.PROGRESS)
-      return <ProgressPage navigate={navigate} />;
-
+    // ── FIXED: return keyword + userData passed ───────────────
     if (currentView === VIEWS.LEARN)
-      <LearnPage
-   navigate={navigate}
-   userData={userData}
-/>
+      return <LearnPage navigate={navigate} userData={userData} />;
 
-   if (currentView === VIEWS.SETTINGS)
-  return isOrg ? (
-    <OrganizationSettings />
-  ) : (
-    <IndividualSettings />
-  );
-      
+    if (currentView === VIEWS.PROGRESS)
+      return <ProgressPage navigate={navigate} userData={userData} />;
+
+    if (currentView === VIEWS.LEADERBOARD)
+      return <Leaderboard navigate={navigate} userData={userData} />;
+
+    if (currentView === VIEWS.SETTINGS)
+      return isOrg ? <OrganizationSettings /> : <IndividualSettings />;
 
     if (currentView === VIEWS.DASHBOARD) {
       return isOrg ? (
@@ -176,40 +171,27 @@ const Dashboard = ({ navigate, currentView, userType, userData, orgId }) => {
         {currentView === VIEWS.DASHBOARD && !isOrg && (
           <div className="feature-blocks-container">
             {featureCards.map((card, index) => (
-              <div
-                key={index}
-                className="feature-block-card"
-                onClick={card.onClick}
-              >
+              <div key={index} className="feature-block-card" onClick={card.onClick}>
                 <div className="feature-content">
                   {card.newBadge && <span className="new-badge">New</span>}
                   <h3 className="feature-title">{card.title}</h3>
                   <p className="feature-description">{card.description}</p>
                 </div>
-
-                {/* Container box with a protective padding so edges don't touch card walls */}
-                <div 
-                  className="feature-image-container" 
-                  style={{ 
-                    display: "flex", 
-                    alignItems: "center", 
-                    justifyContent: "center", 
-                    overflow: "hidden",
-                    padding: "10px",
-                    boxSizing: "border-box"
+                <div
+                  className="feature-image-container"
+                  style={{
+                    display: "flex", alignItems: "center",
+                    justifyContent: "center", overflow: "hidden",
+                    padding: "10px", boxSizing: "border-box",
                   }}
                 >
-                  {/* 🔥 FORCE OVERRIDE IMMUNITY STYLES */}
-                  <img 
-                    src={card.imageSrc} 
-                    alt={card.title} 
+                  <img
+                    src={card.imageSrc}
+                    alt={card.title}
                     style={{
-                      width: "auto",         /* Prevents stretching out horizontally */
-                      height: "auto",        /* Prevents stretching out vertically */
-                      maxWidth: "180%",      /* Locks it safely inside the container width */
-                      maxHeight: "180%",     /* Locks it safely inside the container height */
-                      objectFit: "contain",  /* Keeps proportional bounding box scaling intact */
-                      display: "block"
+                      width: "auto", height: "auto",
+                      maxWidth: "180%", maxHeight: "180%",
+                      objectFit: "contain", display: "block",
                     }}
                   />
                 </div>
