@@ -1,19 +1,27 @@
 // src/components/learning/LessonModal.jsx
 // ─────────────────────────────────────────────────────────────
 // Opens when a user clicks a lesson.
-// Shows: video ↔ sign image side-by-side → quiz → completion
+// Shows: video ↔ sign image side-by-side → quiz (with live camera) → completion
 // ─────────────────────────────────────────────────────────────
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { motion } from "framer-motion";
-import { X, CheckCircle, XCircle } from "lucide-react";
+import { X, CheckCircle, XCircle, Camera as CameraIcon } from "lucide-react";
 import { getLessonDetail, completeLesson, submitQuizAnswer } from "../../api/learningApi";
 import FloatingQuiz from "../quiz/FloatingQuiz";
 
-// This takes "http://127.0.0.1:8000" and expands it safely to "http://127.0.0.1:8000/api/detection"
+// MediaPipe Assets Imports
+import { Hands } from "@mediapipe/hands";
+import { Camera } from "@mediapipe/camera_utils";
+
 const BASE_DETECTION_URL = import.meta.env.VITE_DETECTION_API 
   ? `${import.meta.env.VITE_DETECTION_API}/api/detection`
   : "http://127.0.0.1:8000/api/detection";
+
+const PREDICT_API_URL = import.meta.env.VITE_DETECTION_API
+  ? `${import.meta.env.VITE_DETECTION_API}/predict`
+  : "http://127.0.0.1:8000/predict";
+
 export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const [lesson, setLesson]         = useState(null);
   const [loading, setLoading]       = useState(true);
@@ -22,9 +30,14 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const [quizResult, setQuizResult] = useState(null);
   const [totalXP, setTotalXP]       = useState(0);
   const [completing, setCompleting] = useState(false);
-  
-  // Real-time AI prediction stream state variable
   const [prediction, setPrediction] = useState(""); 
+  const [handVisible, setHandVisible] = useState(false);
+
+  // Core MediaPipe references tied to lifecycle
+  const videoRef = useRef(null);
+  const cameraRef = useRef(null);
+  const handsRef = useRef(null);
+  const lastApiCall = useRef(0);
 
   // Load lesson detail data
   useEffect(() => {
@@ -43,15 +56,15 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
     return () => { isMounted = false; };
   }, [lessonId, userId]);
 
-  // ── 🛠️ REAL-TIME DETECTION API LIFECYCLE MANAGEMENT ──
+  // Real-Time Detection API Lifecycle Management + MediaPipe Stream Pipeline
   useEffect(() => {
-    let intervalId = null;
-    let isCurrentStep = true; // Flag to instantly prevent asynchronous ghost requests
+    let pollingIntervalId = null;
+    let isCurrentStep = true; 
 
     if (step === "quiz") {
       console.log("🚀 Quiz started. Triggering backend sign language detection...");
       
-      // 1. Tell the backend to initialize/start the camera model detection process
+      // 1. Notify Backend of LifeCycle Start
       fetch(`${BASE_DETECTION_URL}/start`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -60,29 +73,99 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
       .then(res => res.json())
       .catch(err => console.error("Failed to start detection API:", err));
 
-      // 2. Poll the prediction outcome frame results every 400ms
-      intervalId = setInterval(async () => {
+      // 2. Initialize MediaPipe Engine
+      const hands = new Hands({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`,
+      });
+      handsRef.current = hands;
+
+      hands.setOptions({
+        maxNumHands: 1,
+        modelComplexity: 1,
+        minDetectionConfidence: 0.7,
+        minTrackingConfidence: 0.7,
+      });
+
+      hands.onResults(async (results) => {
+        if (!isCurrentStep) return;
+
+        if (!results.multiHandLandmarks?.length) {
+          setHandVisible(false);
+          return;
+        }
+
+        setHandVisible(true);
+        const landmarks = results.multiHandLandmarks[0];
+        if (!landmarks || landmarks.length !== 21) return;
+
+        // Perform standard feature normalizations
+        const coords = landmarks.map((lm) => [lm.x, lm.y, lm.z]);
+        const wrist = coords[0];
+        const normalized = coords.map((p) => [
+          p[0] - wrist[0],
+          p[1] - wrist[1],
+          p[2] - wrist[2],
+        ]);
+        const scale = Math.max(...normalized.flat().map((v) => Math.abs(v)));
+        const features = normalized
+          .map((p) => (scale > 0 ? [p[0] / scale, p[1] / scale, p[2] / scale] : p))
+          .flat();
+
+        // Throttle matching rate to 500ms bounds
+        const now = Date.now();
+        if (now - lastApiCall.current < 500) return;
+        lastApiCall.current = now;
+
+        // Stream parsed coordinates directly into Model Processor
+        try {
+          await fetch(PREDICT_API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ features }),
+          });
+        } catch (err) {
+          console.error("Frame pipeline push error:", err);
+        }
+      });
+
+      // Initialize browser media stream engine
+      if (videoRef.current) {
+        const camera = new Camera(videoRef.current, {
+          onFrame: async () => {
+            if (videoRef.current && step === "quiz") {
+              await hands.send({ image: videoRef.current });
+            }
+          },
+          width: 640,
+          height: 480,
+        });
+        camera.start();
+        cameraRef.current = camera;
+      }
+
+      // 3. Keep Polling Interval Active for Interface Synchronization
+      pollingIntervalId = setInterval(async () => {
         try {
           const res = await fetch(`${BASE_DETECTION_URL}/current/${userId}`);
-          
-          // Fast escape if the user leaves the step mid-fetch request
           if (!isCurrentStep) return;
 
           if (res.ok) {
             const data = await res.json();
-            if (data.prediction) {
-              setPrediction(data.prediction.toUpperCase()); // Feeds floating bubbles
-            }
+            setPrediction(data.prediction ? data.prediction.toUpperCase() : ""); 
           }
         } catch (err) {
           console.error("Error fetching live prediction frame:", err);
         }
       }, 400); 
 
-      // ── CLEANUP ON STEP CHANGE OR MODAL UNMOUNT ──
+      // Cleanup Hook Routine
       return () => {
-        isCurrentStep = false; // Block pending intervals immediately
-        if (intervalId) clearInterval(intervalId);
+        isCurrentStep = false; 
+        if (pollingIntervalId) clearInterval(pollingIntervalId);
+        
+        // Kill active media feeds cleanly
+        if (cameraRef.current) cameraRef.current.stop();
+        if (handsRef.current) handsRef.current.close();
         
         console.log("🛑 Leaving quiz. Stopping backend sign language detection...");
         
@@ -103,7 +186,6 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const questions   = lesson?.quiz_questions || [];
   const currentQuestion = questions[currentQ];
 
-  // ── Step: video finished → complete backend, update local view ──
   const handleVideoEnd = async () => {
     if (!completing) {
       setCompleting(true);
@@ -133,12 +215,13 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
 
       setTimeout(() => {
         setQuizResult(null);
+        setPrediction(""); 
         if (currentQ + 1 < questions.length) {
           setCurrentQ((q) => q + 1);
         } else {
           setStep("done");
         }
-      }, 1800);
+      }, 2200);
     } catch (e) {
       console.error(e);
     }
@@ -277,8 +360,36 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
         {/* ── QUIZ STEP ── */}
         {step === "quiz" && currentQuestion && (
           <div style={{ marginTop: "10px" }}>
-            <div style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "0.9rem", marginBottom: "12px", fontWeight: "500" }}>
-              Question {currentQ + 1} of {questions.length}
+            {/* Embedded Live Camera Hook Area */}
+            <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", marginBottom: "20px", flexWrap: "wrap" }}>
+              <div style={{ position: "relative", width: "320px", background: "#11111b", borderRadius: "14px", overflow: "hidden", border: "1px solid rgba(255,255,255,0.1)" }}>
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  style={{ width: "100%", height: "240px", objectFit: "cover", transform: "scaleX(-1)" }}
+                />
+                <div style={{
+                  position: "absolute", top: "10px", right: "10px",
+                  background: handVisible ? "rgba(74, 222, 128, 0.9)" : "rgba(239, 68, 68, 0.9)",
+                  color: "#fff", padding: "4px 10px", borderRadius: "12px", fontSize: "0.75rem", fontWeight: "bold"
+                }}>
+                  {handVisible ? "● Tracking Active" : "○ Show Hand"}
+                </div>
+              </div>
+              <div style={{ flex: 1, minWidth: "250px" }}>
+                <div style={{ color: "rgba(255, 255, 255, 0.5)", fontSize: "0.9rem", marginBottom: "6px", fontWeight: "500" }}>
+                  Question {currentQ + 1} of {questions.length}
+                </div>
+                <h3 style={{ margin: "0 0 12px 0", color: "var(--color-primary-cyan)" }}>Perform the Target Sign in front of your camera.</h3>
+                <div style={{ background: "rgba(255,255,255,0.04)", padding: "12px 16px", borderRadius: "8px", fontSize: "1.1rem" }}>
+                  <strong>Detected Input: </strong> 
+                  <span style={{ color: prediction ? "#4ade80" : "rgba(255,255,255,0.3)", fontSize: "1.4rem", marginLeft: "8px", fontWeight: "bold" }}>
+                    {prediction || "Waiting..."}
+                  </span>
+                </div>
+              </div>
             </div>
 
             <FloatingQuiz 
@@ -286,9 +397,10 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
               currentQuestion={currentQuestion}
               detectedLetter={prediction} 
               onCorrectDetection={(matchedLetter) => {
-                if (!quizResult) {
-                  handleAnswer(matchedLetter);
-                }
+                if (!quizResult) handleAnswer(matchedLetter);
+              }}
+              onIncorrectDetection={(wrongLetter) => {
+                if (!quizResult) handleAnswer(wrongLetter);
               }}
             />
 
@@ -303,13 +415,11 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
                 {quizResult.is_correct ? <CheckCircle color="#4ade80" size={24} /> : <XCircle color="#f87171" size={24} />}
                 <div>
                   <div style={{ color: quizResult.is_correct ? "#4ade80" : "#f87171", fontWeight: "bold", fontSize: "1.1rem" }}>
-                    {quizResult.is_correct ? `Correct Sign Detected! +${quizResult.xp_awarded} XP` : "Incorrect Selection"}
+                    {quizResult.is_correct ? `Correct Sign Detected! +${quizResult.xp_awarded} XP` : "Incorrect Sign Detected!"}
                   </div>
-                  {!quizResult.is_correct && (
-                    <div style={{ color: "#cccccc", fontSize: "0.9rem", marginTop: "4px" }}>
-                      Correct option was: <strong style={{ color: "#ffffff" }}>{quizResult.correct_answer}</strong>
-                    </div>
-                  )}
+                  <div style={{ color: "#cccccc", fontSize: "0.9rem", marginTop: "4px" }}>
+                    Target was: <strong style={{ color: "#ffffff" }}>{currentQuestion.correct_answer}</strong>
+                  </div>
                 </div>
               </div>
             )}

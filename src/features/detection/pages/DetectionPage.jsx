@@ -9,6 +9,7 @@ const DetectionPage = ({ navigate }) => {
     const [isActive, setIsActive] = useState(false);
     const [prediction, setPrediction] = useState("");
     const [sentence, setSentence] = useState("");
+    const [handVisible, setHandVisible] = useState(false); // Track if hand is on screen
 
     const videoRef = useRef(null);
     const cameraRef = useRef(null);
@@ -44,10 +45,14 @@ const DetectionPage = ({ navigate }) => {
         );
     };
 
-    const startDetection = () => setIsActive(true);
+    const startDetection = () => {
+        setIsActive(true);
+        setHandVisible(false);
+    };
 
     const stopDetection = () => {
         setIsActive(false);
+        setHandVisible(false);
 
         const finalWord = getStablePrediction(predictionBufferRef.current);
 
@@ -77,7 +82,9 @@ const DetectionPage = ({ navigate }) => {
         });
 
         hands.onResults(async (results) => {
+            // IF NO HANDS ARE FOUND IN THE FRAME
             if (!results.multiHandLandmarks?.length) {
+                setHandVisible(false); 
                 const diff = Date.now() - lastHandTime.current;
 
                 if (diff > 1200 && !isPaused.current) {
@@ -94,50 +101,44 @@ const DetectionPage = ({ navigate }) => {
 
                     predictionBufferRef.current = [];
                     isPaused.current = true;
-                    setPrediction("...pause...");
+                    setPrediction(""); // Clear active prediction on pause
                 }
 
                 return;
             }
 
+            // HAND IS SEEN
+            setHandVisible(true);
             lastHandTime.current = Date.now();
             isPaused.current = false;
 
             const landmarks = results.multiHandLandmarks[0];
             if (!landmarks || landmarks.length !== 21) return;
 
-          const coords = landmarks.map((lm) => [
-    lm.x,
-    lm.y,
-    lm.z,
-]);
+            const coords = landmarks.map((lm) => [lm.x, lm.y, lm.z]);
+            const wrist = coords[0];
 
-const wrist = coords[0];
+            const normalized = coords.map((p) => [
+                p[0] - wrist[0],
+                p[1] - wrist[1],
+                p[2] - wrist[2],
+            ]);
 
-const normalized = coords.map((p) => [
-    p[0] - wrist[0],
-    p[1] - wrist[1],
-    p[2] - wrist[2],
-]);
+            const scale = Math.max(
+                ...normalized.flat().map((v) => Math.abs(v))
+            );
 
-const scale = Math.max(
-    ...normalized.flat().map((v) => Math.abs(v))
-);
-
-const features = normalized
-    .map((p) =>
-        scale > 0
-            ? [p[0] / scale, p[1] / scale, p[2] / scale]
-            : p
-    )
-    .flat();
+            const features = normalized
+                .map((p) =>
+                    scale > 0
+                        ? [p[0] / scale, p[1] / scale, p[2] / scale]
+                        : p
+                )
+                .flat();
 
             const now = Date.now();
             if (now - lastApiCall.current < 500) return;
             lastApiCall.current = now;
-            
-            console.log("Sending features:", features);
-            console.log("API URL:", API_URL);
 
             try {
                 const res = await fetch(API_URL, {
@@ -149,12 +150,12 @@ const features = normalized
                 const data = await res.json();
 
                 if (data.sentence !== undefined) {
-    setSentence(data.sentence);
-}
+                    setSentence(data.sentence);
+                }
 
-               if (data.stable_sign) {
-    setPrediction(data.stable_sign);
-}
+                if (data.stable_sign) {
+                    setPrediction(data.stable_sign);
+                }
             } catch (err) {
                 console.log("API ERROR:", err);
             }
@@ -171,24 +172,22 @@ const features = normalized
         camera.start();
         cameraRef.current = camera;
 
-       return () => {
-    if (cameraRef.current) {
-        cameraRef.current.stop();
-    }
-
-    handsRef.current?.close();
-};
+        return () => {
+            if (cameraRef.current) {
+                cameraRef.current.stop();
+            }
+            handsRef.current?.close();
+        };
     }, [isActive]);
 
-     return (
+    return (
         <div className="detection-page-wrapper">
             <div className="detection-card">
-
                 <div className="detection-header">
                     <h2>Real-time Detection</h2>
                 </div>
 
-                <div className="video-area">
+                <div className="video-area" style={{ position: "relative" }}>
                     <video
                         ref={videoRef}
                         autoPlay
@@ -203,10 +202,35 @@ const features = normalized
                             <p>Camera Off</p>
                         </div>
                     )}
+
+                    {/* LIVE VISUAL INDICATOR FOR HAND DETECTION STATUS */}
+                    {isActive && (
+                        <div 
+                            style={{
+                                position: "absolute",
+                                top: "12px",
+                                right: "12px",
+                                background: handVisible ? "rgba(74, 222, 128, 0.85)" : "rgba(239, 68, 68, 0.85)",
+                                color: "#fff",
+                                padding: "6px 12px",
+                                borderRadius: "20px",
+                                fontSize: "0.8rem",
+                                fontWeight: "bold",
+                                backdropFilter: "blur(4px)",
+                                transition: "all 0.3s ease"
+                            }}
+                        >
+                            {handVisible ? "● Hand Detected" : "○ No Hand Shown"}
+                        </div>
+                    )}
                 </div>
 
-                <div className="model-status-text">
-                    {isActive ? prediction : "Start camera"}
+                {/* TEXT RENDERING STATUS */}
+                <div className="model-status-text" style={{ minHeight: "24px" }}>
+                    {isActive 
+                        ? (handVisible ? prediction : <span style={{ color: "rgba(255,255,255,0.4)" }}>No hand shown...</span>) 
+                        : "Start camera"
+                    }
                 </div>
 
                 <div className="sentence-box">
@@ -214,78 +238,66 @@ const features = normalized
                 </div>
 
                 <div
-  className="btn-group"
-  style={{
-    display: "flex",
-    gap: "16px",
-    justifyContent: "center",
-    marginTop: "25px",
-    flexWrap: "wrap"
-  }}
->
-  {/* START / STOP BUTTON */}
-  <button
-    onClick={
-      isActive
-        ? stopDetection
-        : startDetection
-    }
-    style={{
-      background: isActive
-        ? "linear-gradient(135deg, #ff4d4d, #d93636)"
-        : "linear-gradient(135deg, #4a67ff, #6d83ff)",
-      color: "#fff",
-      border: "none",
-      padding: "14px 30px",
-      borderRadius: "14px",
-      cursor: "pointer",
-      fontWeight: "700",
-      fontSize: "0.95rem",
-      letterSpacing: "0.5px",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      minWidth: "150px",
-      transition: "all 0.3s ease",
-      boxShadow: isActive
-        ? "0 10px 25px rgba(255,77,77,0.35)"
-        : "0 10px 25px rgba(74,103,255,0.35)"
-    }}
-  >
-    {isActive ? "Stop Detection" : "Start Detection"}
-  </button>
+                    className="btn-group"
+                    style={{
+                        display: "flex",
+                        gap: "16px",
+                        justifyContent: "center",
+                        marginTop: "25px",
+                        flexWrap: "wrap"
+                    }}
+                >
+                    <button
+                        onClick={isActive ? stopDetection : startDetection}
+                        style={{
+                            background: isActive
+                                ? "linear-gradient(135deg, #ff4d4d, #d93636)"
+                                : "linear-gradient(135deg, #4a67ff, #6d83ff)",
+                            color: "#fff",
+                            border: "none",
+                            padding: "14px 30px",
+                            borderRadius: "14px",
+                            cursor: "pointer",
+                            fontWeight: "700",
+                            fontSize: "0.95rem",
+                            letterSpacing: "0.5px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "10px",
+                            minWidth: "150px",
+                            transition: "all 0.3s ease",
+                            boxShadow: isActive
+                                ? "0 10px 25px rgba(255,77,77,0.35)"
+                                : "0 10px 25px rgba(74,103,255,0.35)"
+                        }}
+                    >
+                        {isActive ? "Stop Detection" : "Start Detection"}
+                    </button>
 
-  {/* BACK BUTTON */}
-  <button
-    onClick={() =>
-      navigate("DASHBOARD")
-    }
-    style={{
-      background:
-        "rgba(255,255,255,0.06)",
-      color: "#fff",
-      border:
-        "1px solid rgba(255,255,255,0.12)",
-      padding: "14px 26px",
-      borderRadius: "14px",
-      cursor: "pointer",
-      fontWeight: "600",
-      fontSize: "0.95rem",
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      gap: "10px",
-      minWidth: "140px",
-      backdropFilter: "blur(10px)",
-      transition: "all 0.3s ease"
-    }}
-  >
-    
-    Back
-  </button>
-</div>
-
+                    <button
+                        onClick={() => navigate("DASHBOARD")}
+                        style={{
+                            background: "rgba(255,255,255,0.06)",
+                            color: "#fff",
+                            border: "1px solid rgba(255,255,255,0.12)",
+                            padding: "14px 26px",
+                            borderRadius: "14px",
+                            cursor: "pointer",
+                            fontWeight: "600",
+                            fontSize: "0.95rem",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "10px",
+                            minWidth: "140px",
+                            backdropFilter: "blur(10px)",
+                            transition: "all 0.3s ease"
+                        }}
+                    >
+                        Back
+                    </button>
+                </div>
             </div>
         </div>
     );

@@ -101,3 +101,32 @@ export const getMe = async (token) => {
     user: data.user,
   };
 };
+
+
+// Append this to your existing auth api file
+
+/// =========================
+// UPDATE USER PROFILE (FIXED)
+// =========================
+export const updateUserProfile = async (userId, updateData, token) => {
+  const data = await request(`/users/${userId}`, {
+    method: "PUT",
+    headers: {
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify(updateData),
+  });
+
+  // Strict structural evaluation: if backend failed, or didn't explicitly return true
+  if (!data || data.success === false || (!data.success && !data.user)) {
+    return { 
+      success: false, 
+      message: data.message || "Database failed to persist profile changes." 
+    };
+  }
+
+  return {
+    success: true,
+    user: data.user,
+  };
+};

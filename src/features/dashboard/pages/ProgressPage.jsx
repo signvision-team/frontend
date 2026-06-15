@@ -1,20 +1,14 @@
-// src/pages/ProgressPage.jsx
-// ─────────────────────────────────────────────────────────────
-// Replaces your static ProgressPage with real data from
-// Gamification Service + Learning Service.
-// ─────────────────────────────────────────────────────────────
-
 import React, { useEffect, useState } from "react";
 import Card from "../../dashboard/components/Card";
 import { getUserXP, getUserBadges, getUserStreak } from "../../../api/gamificationApi";
-import { getUserProgress }                          from "../../../api/learningApi";
+import { getUserProgress } from "../../../api/learningApi";
 
 const ProgressPage = ({ navigate, userData }) => {
-  const userId = userData?.id || 1;
+  const userId = userData?.id || userData?.user_id || 1;
 
-  const [xp, setXP]           = useState(null);
-  const [badges, setBadges]   = useState([]);
-  const [streak, setStreak]   = useState(null);
+  const [xp, setXP] = useState(null);
+  const [badges, setBadges] = useState([]);
+  const [streak, setStreak] = useState(null);
   const [progress, setProgress] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -28,7 +22,7 @@ const ProgressPage = ({ navigate, userData }) => {
           getUserProgress(userId),
         ]);
         setXP(xpData);
-        setBadges(badgeData.badges || []);
+        setBadges(badgeData?.badges || badgeData || []);
         setStreak(streakData);
         setProgress(progressData);
       } catch (err) {
@@ -40,7 +34,7 @@ const ProgressPage = ({ navigate, userData }) => {
     load();
   }, [userId]);
 
-  // ── Styles (your original design, kept exactly) ──────────────
+  // —— Styles ——
   const containerStyle = { color: "#e2e8f0", fontFamily: "sans-serif", padding: "20px" };
   const subtitleStyle  = { fontSize: "1.05rem", color: "#94a3b8", marginTop: "5px", marginBottom: "30px" };
 
@@ -84,10 +78,15 @@ const ProgressPage = ({ navigate, userData }) => {
     );
   }
 
+  // Fallbacks map across both direct metric and computed progress wrappers
   const proficiencyScore = progress?.overall_progress_percent ?? 0;
   const totalXP          = xp?.total_xp ?? 0;
   const currentLevel     = xp?.current_level ?? 1;
   const xpPercent        = xp?.xp_progress_percent ?? 0;
+  
+  // Dynamic fallback evaluation logic for chapter signs completed
+  const calculatedSignsLearned = progress?.chapters?.reduce((acc, ch) => acc + (ch.completed_lessons || 0), 0) ?? 0;
+  const signsLearned     = xp?.signs_learned || progress?.total_completed_lessons || calculatedSignsLearned || 0;
 
   return (
     <Card style={{ backgroundColor: "#1a1a2f", border: "1px solid rgba(255,255,255,0.05)",
@@ -134,31 +133,29 @@ const ProgressPage = ({ navigate, userData }) => {
           </div>
 
           {/* Streak */}
-          {streak && (
-            <div style={{ display: "flex", gap: 24 }}>
-              <div>
-                <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
-                               letterSpacing: "1px" }}>CURRENT STREAK</span>
-                <div style={{ color: "#f97316", fontSize: "1.5rem", fontWeight: "bold" }}>
-                  🔥 {streak.current_streak} days
-                </div>
-              </div>
-              <div>
-                <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
-                               letterSpacing: "1px" }}>BEST STREAK</span>
-                <div style={{ color: "#fbbf24", fontSize: "1.5rem", fontWeight: "bold" }}>
-                  ⭐ {streak.longest_streak} days
-                </div>
-              </div>
-              <div>
-                <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
-                               letterSpacing: "1px" }}>SIGNS LEARNED</span>
-                <div style={{ color: "#4ade80", fontSize: "1.5rem", fontWeight: "bold" }}>
-                  🤟 {xp?.signs_learned ?? 0}
-                </div>
+          <div style={{ display: "flex", gap: 24, flexWrap: "wrap" }}>
+            <div>
+              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
+                             letterSpacing: "1px" }}>CURRENT STREAK</span>
+              <div style={{ color: "#f97316", fontSize: "1.5rem", fontWeight: "bold" }}>
+                🔥 {streak?.current_streak ?? 0} days
               </div>
             </div>
-          )}
+            <div>
+              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
+                             letterSpacing: "1px" }}>BEST STREAK</span>
+              <div style={{ color: "#fbbf24", fontSize: "1.5rem", fontWeight: "bold" }}>
+                ⭐ {streak?.longest_streak ?? 0} days
+              </div>
+            </div>
+            <div>
+              <span style={{ color: "#64748b", fontSize: "0.75rem", fontWeight: 700,
+                             letterSpacing: "1px" }}>SIGNS LEARNED</span>
+              <div style={{ color: "#4ade80", fontSize: "1.5rem", fontWeight: "bold" }}>
+                🤟 {signsLearned}
+              </div>
+            </div>
+          </div>
 
           {/* Badges */}
           <div>
@@ -167,9 +164,9 @@ const ProgressPage = ({ navigate, userData }) => {
             <div style={{ display: "flex", gap: "12px", flexWrap: "wrap", marginTop: "12px" }}>
               {badges.length === 0 ? (
                 <span style={{ color: "#64748b" }}>No badges yet. Complete lessons to earn them!</span>
-              ) : badges.map((badge) => (
-                <div key={badge.id} style={badgeItemStyle("rgba(74,103,255,0.4)", "#adc1ff")}>
-                  {badge.icon} {badge.name}
+              ) : badges.map((badge, idx) => (
+                <div key={badge.id || idx} style={badgeItemStyle("rgba(74,103,255,0.4)", "#adc1ff")}>
+                  {badge.icon || "🏅"} {badge.name || badge}
                 </div>
               ))}
             </div>

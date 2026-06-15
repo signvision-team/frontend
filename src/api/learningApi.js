@@ -44,11 +44,15 @@ export const completeLesson = async (lessonId, userId, watchTimeSeconds = 0) => 
     user_id: userId,
     watch_time_seconds: watchTimeSeconds,
   });
-  // Invalidate so next visit re-fetches with updated progress
+
+  // Invalidate both progress and gamification caches for real-time consistency
   cache.invalidate(`chapters_${userId}`);
   cache.invalidate(`chapter_${data.chapter_id}_${userId}`);
   cache.invalidate(`lesson_${lessonId}_${userId}`);
   cache.invalidate(`progress_${userId}`);
+  cache.invalidate(`xp_${userId}`);
+  cache.invalidate(`streak_${userId}`);
+  
   return data;
 };
 

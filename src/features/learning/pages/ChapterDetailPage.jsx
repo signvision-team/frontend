@@ -4,7 +4,7 @@ import { motion } from "framer-motion";
 import { ArrowLeft, Lock, CheckCircle, PlayCircle, Brain } from "lucide-react";
 import { getChapterDetail } from "../../../api/learningApi";
 import { useGamification } from "../../../hooks/useGamification";
-import { cache } from "../../../api/cache"; // ── Added for immediate cache busting ──
+import { cache } from "../../../api/cache"; 
 import LessonModal from "../../../components/learning/LessonModal";
 import SignQuiz from "../../../components/quiz/SignQuiz";
 import XPAnimation from "../../../components/gamification/XPAnimation";
@@ -29,19 +29,26 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
     try {
       setLoading(true);
       
-      // If we are forcing a refresh after a lesson completion, bust the local cache wrapper
+      // Force refresh on event completion and bust all related local caches
       if (forceRefresh) {
         cache.invalidate(`chapter_${chapterId}_${userId}`);
         cache.invalidate(`chapters_${userId}`);
         cache.invalidate(`progress_${userId}`);
+        cache.invalidate(`xp_${userId}`);
+        cache.invalidate(`streak_${userId}`);
+        cache.invalidate(`badges_${userId}`);
+        cache.invalidate(`leaderboard_50`);
       }
 
       const data = await getChapterDetail(chapterId, userId);
       setChapter(data);
 
-      const questions = (data.lessons || []).flatMap(
-        l => (l.quiz_questions || [])
-      );
+      // FIXED: Normalized dataset extraction to support backend variations
+      const questions = (data.lessons || []).flatMap(l => {
+        const rawQuiz = l.quiz_questions || l.quizzes || l.quiz || [];
+        return Array.isArray(rawQuiz) ? rawQuiz : [rawQuiz];
+      }).filter(Boolean);
+
       setAllQuestions(questions);
     } catch (e) {
       console.error("Error building chapter metrics detail: ", e);
@@ -52,17 +59,21 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
 
   useEffect(() => { 
     fetchChapter(false); 
-  }, [chapterId]);
+  }, [chapterId, userId]);
 
-  // ── This runs when the lesson modal concludes ──
   const handleLessonComplete = async () => {
     setOpenLessonId(null);
+    // Bust global cache so the backend recalculates completion percentages
+    cache.invalidate(`xp_${userId}`);
+    cache.invalidate(`streak_${userId}`);
     if (refetchGami) await refetchGami();
-    await fetchChapter(true); // Passing true forces a fresh network call to unlock the next item
+    await fetchChapter(true); 
   };
 
   const handleQuizComplete = async (earnedXP) => {
     setShowQuiz(false);
+    cache.invalidate(`xp_${userId}`);
+    cache.invalidate(`streak_${userId}`);
     if (refetchGami) await refetchGami();
     await fetchChapter(true);
   };
@@ -86,13 +97,13 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
   const totalCount     = chapter?.total_lessons || 0;
 
   return (
-    <div className="content-area" style={{ background: "var(--color-bg-light)", minHeight: "100vh" }}>
+    <div className="content-area" style={{ background: "var(--color-bg-light)", minHeight: "100vh", padding: "20px" }}>
 
       {showXPPop && <XPAnimation xp={xpGained} />}
       {leveledUp  && <LevelUpModal level={xp?.current_level} />}
       {newBadges.map((b, i) => <BadgeNotification key={i} badge={b} index={i} />)}
 
-      {/* Lesson Parallel Modal Instance */}
+      {/* Lesson Modal */}
       {openLessonId && (
         <LessonModal
           lessonId={openLessonId}
@@ -114,7 +125,7 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
       )}
 
       {/* Structural Controls Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24 }}>
+      <div style={{ display: "flex", alignItems: "center", gap: 16, marginBottom: 24, flexWrap: "wrap" }}>
         <button 
           className="btn primary" 
           onClick={() => navigate("LEARN")}
@@ -122,14 +133,14 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
         >
           <ArrowLeft size={18} /> Back
         </button>
-        <div style={{ flex: 1 }}>
+        <div style={{ flex: 1, minWidth: "200px" }}>
           <h2 style={{ color: "var(--color-text)", margin: 0, fontSize: "2rem" }}>{chapter?.title}</h2>
           <p style={{ color: "#666666", margin: "4px 0 0", fontSize: "0.95rem", fontWeight: "500" }}>
-            {completedCount}/{totalCount} lessons complete · {chapter?.progress_percent}%
+            {completedCount}/{totalCount} lessons complete · {chapter?.progress_percent || 0}%
           </p>
         </div>
 
-        {/* Header Block Quiz Trigger Action */}
+        {/* Action Button: Conditional layout rendering */}
         <button
           onClick={() => canStartQuiz ? setShowQuiz(true) : null}
           disabled={!canStartQuiz}
@@ -152,7 +163,7 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
         </button>
       </div>
 
-      {/* Primary Dashboard Progress Bar Tracking Layout */}
+      {/* Progress Bar Progress Tracking */}
       <div style={{ width: "100%", height: 12, background: "#dddddd", borderRadius: 20, marginBottom: 28, overflow: "hidden" }}>
         <motion.div
           initial={{ width: 0 }}
@@ -190,7 +201,6 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
             }}
             whileHover={!lesson.is_locked ? { scale: 1.01, boxShadow: "0 6px 16px rgba(0,0,0,0.06)" } : {}}
           >
-            {/* Conditional Thumbnail Icon Element Container */}
             {lesson.thumbnail_url ? (
               <img src={lesson.thumbnail_url} alt={lesson.title}
                    style={{ width: 64, height: 64, borderRadius: 8, objectFit: "cover" }} />
@@ -207,7 +217,6 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
               </div>
             )}
 
-            {/* Middle Descriptions Info Box */}
             <div style={{ flex: 1 }}>
               <h3 style={{ color: "var(--color-text)", margin: 0, fontSize: "1.1rem", fontWeight: "600" }}>
                 {lesson.title}
@@ -219,7 +228,6 @@ const ChapterDetailPage = ({ navigate, userData, chapterId }) => {
               )}
             </div>
 
-            {/* Rewards System Indicators block layout */}
             <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 8 }}>
               <span style={{ color: "#d97706", fontSize: "0.9rem", fontWeight: "bold" }}>
                 +{lesson.xp_reward || 15} XP
