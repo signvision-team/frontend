@@ -41,7 +41,9 @@ function makeFloatingLetter(letter, isTarget = false) {
 
 // ── Detection polling ─────────────────────────────────────────
 // Calls your existing MediaPipe backend every 800ms
-const DETECTION_URL    = "http://127.0.0.1:8000/predict";   // ← your detection endpoint
+const DETECTION_URL = window.location.hostname.includes("localhost")
+  ? "http://127.0.0.1:8000/predict"
+  : "https://detectionbase.onrender.com/predict";  // ← your detection endpoint
 const DETECTION_INTERVAL = 800;  // ms between predictions
 const MIN_CONFIDENCE     = 0.75; // minimum confidence to count
 

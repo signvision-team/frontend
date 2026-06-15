@@ -1,6 +1,7 @@
-const API_URL = "https://detection-dcmj.onrender.com";
-const API_URL = import.meta.env.VITE_AI_API || "http://127.0.0.1:8000/predict";
-
+// Clean, single variable declaration that handles both environments perfectly
+const API_URL = import.meta.env.VITE_AI_API 
+  ? `${import.meta.env.VITE_AI_API}/predict` 
+  : "http://127.0.0.1:8000/predict";
 export const predictSign = async (features) => {
   try {
     const controller = new AbortController();

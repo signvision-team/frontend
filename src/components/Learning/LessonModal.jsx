@@ -14,13 +14,11 @@ import FloatingQuiz from "../quiz/FloatingQuiz";
 import { Hands } from "@mediapipe/hands";
 import { Camera } from "@mediapipe/camera_utils";
 
-const BASE_DETECTION_URL = import.meta.env.VITE_DETECTION_API 
-  ? `${import.meta.env.VITE_DETECTION_API}/api/detection`
-  : "http://127.0.0.1:8000/api/detection";
+// Strict fallback production URL setup pointing directly to Render
+const DETECT_BASE_URL = import.meta.env.VITE_DETECTION_API || "https://detectionbase.onrender.com";
 
-const PREDICT_API_URL = import.meta.env.VITE_DETECTION_API
-  ? `${import.meta.env.VITE_DETECTION_API}/predict`
-  : "http://127.0.0.1:8000/predict";
+const BASE_DETECTION_URL = `${DETECT_BASE_URL}/api/detection`;
+const PREDICT_API_URL      = `${DETECT_BASE_URL}/predict`;
 
 export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
   const [lesson, setLesson]         = useState(null);
@@ -144,9 +142,10 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
       }
 
       // 3. Keep Polling Interval Active for Interface Synchronization
+      // FIX: Changed endpoints to pass `lessonId` matching backend expectations
       pollingIntervalId = setInterval(async () => {
         try {
-          const res = await fetch(`${BASE_DETECTION_URL}/current/${userId}`);
+          const res = await fetch(`${BASE_DETECTION_URL}/current/${lessonId}`);
           if (!isCurrentStep) return;
 
           if (res.ok) {
@@ -234,6 +233,9 @@ export default function LessonModal({ lessonId, userId, onClose, onComplete }) {
       </div>
     </Overlay>
   );
+  
+  // Note: Add your component's remaining rendering layout logic here
+
 
   return (
     <Overlay onClose={onClose}>

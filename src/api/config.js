@@ -6,7 +6,7 @@
 
 // src/api/config.js
 export const API = {
-  GAMIFICATION: "http://127.0.0.1:8002",
-  LEARNING:     "http://127.0.0.1:8003", // 🌟 Change this from localhost
-  AUTH:         "http://127.0.0.1:8000", 
+GAMIFICATION: "https://gamification-learning-production.up.railway.app",
+  LEARNING:     "https://happy-purpose-production-9440.up.railway.app", // 🌟 Change this from localhost
+  AUTH:         "https://backendfordbanddocker-production-5385.up.railway.app", 
 };
