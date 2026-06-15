@@ -1,11 +1,10 @@
 // src/pages/SettingsPage.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import Card from "./Card";
 import { cache } from "../api/cache";
 import { updateUserProfile } from "../api/authApi";
 
 const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
-  // Safe extraction of current database user key
   const userId = userData?.id || userData?.user_id;
 
   // Local state management
@@ -15,17 +14,9 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  // Input fields
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-
-  // Keep internal form values in sync whenever userData mounts or updates
-  useEffect(() => {
-    if (userData) {
-      setName(userData.name || userData.username || "");
-      setEmail(userData.email || "");
-    }
-  }, [userData, isEditingProfile]);
+  // ✅ FIX: Initialize inputs directly from data. No infinity-looping useEffect hooks!
+  const [name, setName] = useState(() => userData?.name || userData?.username || "");
+  const [email, setEmail] = useState(() => userData?.email || "");
 
   const handleSignOut = () => {
     try {
@@ -47,8 +38,6 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
 
   const handleSaveChanges = async (e) => {
     e.preventDefault();
-    
-    // Safety check: Prevent submission if ID is missing
     if (!userId) {
       setErrorMessage("User session identification lost. Please log in again.");
       return;
@@ -68,20 +57,15 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
       setSuccessMessage("");
 
       const activeToken = localStorage.getItem("token");
-      
-      // 1. Dispatch payload through fetch layer
       const result = await updateUserProfile(userId, { name: trimmedName, email: trimmedEmail }, activeToken);
 
-      // 2. Intercept structured failures
       if (!result.success) {
         throw new Error(result.message || "Database rejected modifications.");
       }
 
-      // 3. Clear application context cache registries
       cache.invalidate(`chapters_${userId}`);
       cache.invalidate(`progress_${userId}`);
 
-      // 4. Update the parent application state
       if (onUserUpdate) {
         onUserUpdate(result.user || { ...userData, name: trimmedName, email: trimmedEmail }); 
       }
@@ -96,7 +80,6 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
     }
   };
 
-  // Check if inputs match the original data
   const isFormUnchanged = name.trim() === (userData?.name || userData?.username || "") && 
                           email.trim() === (userData?.email || "");
 
@@ -124,6 +107,9 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
               onClick={() => {
                 setErrorMessage("");
                 setSuccessMessage("");
+                // Set explicitly when opening the editing box
+                setName(userData?.name || userData?.username || "");
+                setEmail(userData?.email || "");
                 setIsEditingProfile(true);
               }}
             >
@@ -195,7 +181,6 @@ const SettingsPage = ({ navigate, userData, onLogOut, onUserUpdate }) => {
         </label>
       </div>
 
-      {/* Navigation and System Controls */}
       <div style={{ marginTop: "28px" }}>
         <button className="btn secondary" onClick={handleSignOut}>
           Log Out

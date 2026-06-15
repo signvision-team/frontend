@@ -1,7 +1,10 @@
+// src/features/auth/pages/SignPage.jsx
 import React, { useState, useEffect, useRef } from "react";
 
 const SignPage = ({ navigate, VIEWS, setUserType, handleLogin }) => {
   const [loginType, setLoginType] = useState("INDIVIDUAL");
+  const [errorMessage, setErrorMessage] = useState(""); // Managed state error view panel
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const [formData, setFormData] = useState({
     email: "",
@@ -11,85 +14,86 @@ const SignPage = ({ navigate, VIEWS, setUserType, handleLogin }) => {
 
   const footerRef = useRef(null);
 
-  const handleChange = (e) =>
+  const handleChange = (e) => {
+    setErrorMessage(""); // Instantly clear error when user types again
     setFormData({
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
 
+  // Safe flush states whenever the user switches roles
   useEffect(() => {
     setFormData({
       email: "",
       password: "",
       orgId: ""
     });
+    setErrorMessage("");
   }, [loginType]);
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    setErrorMessage("");
+
+    const emailClean = formData.email.trim();
+    const passwordClean = formData.password.trim();
+    const orgIdClean = formData.orgId.trim();
+
+    // 1. Validation checks on Client View before firing network traffic
+    if (!emailClean || !passwordClean) {
+      setErrorMessage("Please enter both your email address and password.");
+      return;
+    }
+
+    // 2. ENFORCE VALIDATION: Ensure Org ID is provided if logging in as an organization
+    if (loginType === "ORGANIZATION" && !orgIdClean) {
+      setErrorMessage("Please provide your unique Organization ID to access your workspace.");
+      return;
+    }
 
     const payload = {
-      email: formData.email.trim(),
-      password: formData.password.trim(),
+      email: emailClean,
+      password: passwordClean,
       userType: loginType,
-      orgID:
-        loginType === "ORGANIZATION"
-          ? formData.orgId.trim()
-          : null
+      orgID: loginType === "ORGANIZATION" ? orgIdClean : null
     };
 
     try {
+      setIsSubmitting(true);
       const result = await handleLogin(payload);
 
+      // Successfully authenticated profile matching wrapper constraints
       if (result && result.success) {
         const backendUserType = result.user?.userType;
+        const finalUserType = backendUserType || loginType;
 
-        const finalUserType =
-          backendUserType || loginType;
+        if (setUserType) setUserType(finalUserType);
 
-        if (setUserType)
-          setUserType(finalUserType);
-
-        localStorage.setItem(
-          "user",
-          JSON.stringify(result.user)
-        );
-
-        localStorage.setItem(
-          "token",
-          result.token
-        );
-
-        localStorage.setItem(
-          "userType",
-          finalUserType
-        );
+        localStorage.setItem("user", JSON.stringify(result.user));
+        localStorage.setItem("token", result.token);
+        localStorage.setItem("userType", finalUserType);
 
         const orgIdValue =
           result.user?.orgID ||
           result.user?.orgId ||
           result.user?.organizationId ||
-          null;
+          (loginType === "ORGANIZATION" ? orgIdClean : null);
 
-        if (orgIdValue)
-          localStorage.setItem(
-            "orgId",
-            orgIdValue
-          );
+        if (orgIdValue) {
+          localStorage.setItem("orgId", orgIdValue);
+        }
 
         navigate(VIEWS.DASHBOARD);
       } else {
-        alert(result?.message || "Login failed");
+        // Capture direct errors from our updated API stream
+        setErrorMessage(result?.message || "Login failed. Invalid account metadata.");
       }
     } catch (err) {
-      console.error(
-        "Login component error:",
-        err
-      );
-
-      alert(
-        "An unexpected error occurred. Please check backend."
-      );
+      console.error("Login component execution crash:", err);
+      setErrorMessage("Could not connect to the authentication node. Check your backend status.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 

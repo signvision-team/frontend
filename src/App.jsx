@@ -56,8 +56,8 @@ const App = () => {
     setCurrentView(VIEWS.SIGN_IN);
   }, []);
 
-  // =========================
-  // LOGIN
+ // =========================
+  // LOGIN (FIXED REFERENCE RETURN)
   // =========================
   const handleLogin = async (formData) => {
     try {
@@ -83,59 +83,69 @@ const App = () => {
 
         setOrgId(organizationId);
 
-        // ── NEW: update streak silently on login ─────────────
-        // Never blocks login even if gamification service is down
+        // Update streak silently on login
         updateStreak(user.id).catch(() => {});
 
         setCurrentView(VIEWS.DASHBOARD);
-        return true;
+        
+        // ✅ FIX: Return the original response object so SignPage can read result.success
+        return data; 
       }
 
-      alert(data.message || "Login failed");
-      return false;
+      // ✅ FIX: Removed the alert from here to let SignPage handle UI messages uniquely
+      return data;
     } catch (error) {
-      console.error(error);
-      alert("Server error");
-      return false;
+      console.error("Core login handling crash:", error);
+      return { success: false, message: "Server connection timed out." };
     }
   };
-
   // =========================
   // SIGNUP (UNCHANGED)
   // =========================
+ // ==========================================
+  // SIGNUP (FIXED OBJECT PASS-THROUGH)
+  // ==========================================
   const handleSignUp = async (formData) => {
     try {
       const data = await signupUser(formData);
 
-      if (data.success) {
-        if (formData.userType === "ORGANIZATION" && data.orgId) {
-          alert(`Organization created successfully!\nYour Org ID: ${data.orgId}`);
-        } else {
-          alert("Signup successful!");
-        }
-
+      if (data && data.success) {
+        // Automatically sync system view layout upon background success
         setCurrentView(VIEWS.SIGN_IN);
-        return true;
+        
+        // ✅ FIX: Pass the whole object back so SignUp.jsx can read the orgID
+        return data; 
       }
 
-      alert(data.message || "Signup failed");
-      return false;
+      // Pass along failing backend message payloads safely
+      return data || { success: false, message: "Registration rejected by database." };
     } catch (error) {
-      console.error(error);
-      alert("Server error");
-      return false;
+      console.error("Core signup handling crash:", error);
+      return { success: false, message: "Server communication lost during creation pass." };
     }
   };
-
-  // =========================
-  // LOGOUT
+ // =========================
+  // LOGOUT (DEEP PURGE)
   // =========================
   const handleLogout = () => {
+    // 1. Clear memory states immediately
     setUserData(null);
     setToken(null);
     setOrgId(null);
-    setUserType("INDIVIDUAL");
+    setUserType("INDIVIDUAL"); // Reset default template view state
     setNavState(null);
+
+    // 2. Pure persistent storage hard clean
+    localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("userType");
+    localStorage.removeItem("orgId");
+    localStorage.removeItem("user_data");
+    
+    // Clear temporary volatile cache structures 
+    sessionStorage.clear();
+
+    // 3. Kick back to main authentication gateway screen
     setCurrentView(VIEWS.SIGN_IN);
   };
 

@@ -23,6 +23,7 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
 
+  // ✅ ONLY ONE CLEAN ON_SUBMIT HANDLER
   const onSubmit = async (e) => {
     e.preventDefault();
 
@@ -60,116 +61,119 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
     };
 
     try {
+      // Send payload upstream to App.jsx
       const response = await handleSignUp(payload);
 
-      if (response?.success) {
+      // Verify the backend object return state
+      if (response && response.success) {
         if (registrationType === "ORGANIZATION") {
+          
+          // ✅ STRIPPED FALLBACKS: Force exact match with backend response "orgID"
+          const actualOrgID = response.orgID;
+          
           alert(
-            `🎉 Organization Registered Successfully!\n\nYour Organization ID:\n👉 ${
-              response.organizationId || "NOT RECEIVED"
-            }`
+            `🎉 Organization Registered Successfully!\n\n` +
+            `👉 YOUR LOGIN ORGANIZATION ID IS: ${actualOrgID}\n\n` +
+            `Please copy this code. You need it to sign in!`
           );
         } else {
-          alert("🎉 Account created successfully!");
+          alert("🎉 Individual learner profile created successfully!");
         }
 
+        // Send user cleanly to login screen
         navigate(VIEWS.SIGN_IN);
       } else {
-        alert(response?.message || "Signup failed");
+        alert(response?.message || "Signup failed. Please try again.");
       }
     } catch (error) {
-      console.error(error);
-      alert("Server error during signup");
+      console.error("Signup validation crash:", error);
+      alert("An unexpected network error occurred. Please check your connection.");
     }
   };
 
   return (
     <div className="landing-page-wrapper">
-{/* HEADER */}
-<div
-  style={{
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "space-between",
-    padding: "20px 50px",
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    zIndex: 100
-  }}
->
-
-  {/* LOGO */}
-  <div className="corner-logo-container">
-    <img
-      src={svLogo}
-      alt="SignVision"
-      style={{ height: "150px" }}
-    />
-  </div>
-
-  {/* NAVBAR RIGHT SIDE */}
-  <div
-    style={{
-      marginLeft: "auto",
-      display: "flex",
-      alignItems: "center"
-    }}
-  >
-    <ul
-      style={{
-        display: "flex",
-        alignItems: "center",
-        gap: "35px",
-        listStyle: "none",
-        margin: 0,
-        padding: 0
-      }}
-    >
-
-      {/* HOME */}
-      <li
-        onClick={() => navigate(VIEWS.SIGN_IN)}
+      {/* HEADER */}
+      <div
         style={{
-          cursor: "pointer",
-          color: "#ffffff",
-          fontWeight: "600",
-          fontSize: "1.05rem"
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          padding: "20px 50px",
+          position: "absolute",
+          top: 0,
+          left: 0,
+          right: 0,
+          zIndex: 100
         }}
       >
-        Home
-      </li>
+        {/* LOGO */}
+        <div className="corner-logo-container">
+          <img
+            src={svLogo}
+            alt="SignVision"
+            style={{ height: "150px" }}
+          />
+        </div>
 
-      {/* ABOUT US */}
-      <li
-        onClick={() => {
-          navigate(VIEWS.SIGN_IN);
+        {/* NAVBAR RIGHT SIDE */}
+        <div
+          style={{
+            marginLeft: "auto",
+            display: "flex",
+            alignItems: "center"
+          }}
+        >
+          <ul
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "35px",
+              listStyle: "none",
+              margin: 0,
+              padding: 0
+            }}
+          >
+            {/* HOME */}
+            <li
+              onClick={() => navigate(VIEWS.SIGN_IN)}
+              style={{
+                cursor: "pointer",
+                color: "#ffffff",
+                fontWeight: "600",
+                fontSize: "1.05rem"
+              }}
+            >
+              Home
+            </li>
 
-          setTimeout(() => {
-            const footer =
-              document.getElementById("footer");
+            {/* ABOUT US */}
+            <li
+              onClick={() => {
+                navigate(VIEWS.SIGN_IN);
 
-            if (footer) {
-              footer.scrollIntoView({
-                behavior: "smooth"
-              });
-            }
-          }, 300);
-        }}
-        style={{
-          cursor: "pointer",
-          color: "#ffffff",
-          fontWeight: "600",
-          fontSize: "1.05rem"
-        }}
-      >
-        About Us
-      </li>
+                setTimeout(() => {
+                  const footer = document.getElementById("footer");
+                  if (footer) {
+                    footer.scrollIntoView({
+                      behavior: "smooth"
+                    });
+                  }
+                }, 300);
+              }}
+              style={{
+                cursor: "pointer",
+                color: "#ffffff",
+                fontWeight: "600",
+                fontSize: "1.05rem"
+              }}
+            >
+              About Us
+            </li>
+          </ul>
+        </div>
+      </div>
 
-    </ul>
-  </div>
-</div>
       {/* HERO SECTION */}
       <div
         className="hero-section"
@@ -185,7 +189,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
             margin: "0 auto"
           }}
         >
-
           {/* TOGGLE BUTTONS */}
           <div
             style={{
@@ -230,7 +233,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
               textAlign: "left"
             }}
           >
-
             {/* INDIVIDUAL FIELDS */}
             {registrationType === "INDIVIDUAL" && (
               <>
@@ -388,7 +390,6 @@ const SignUp = ({ navigate, VIEWS, setUserType, handleSignUp }) => {
                 ? "Sign Up"
                 : "Register Organization"}
             </button>
-
           </form>
         </div>
       </div>
@@ -403,9 +404,7 @@ const toggleButtonStyle = (isActive) => ({
   cursor: "pointer",
   fontWeight: "bold",
   borderRadius: "8px",
-  backgroundColor: isActive
-    ? "#4a67ff"
-    : "rgba(255,255,255,0.1)",
+  backgroundColor: isActive ? "#4a67ff" : "rgba(255,255,255,0.1)",
   color: isActive ? "#fff" : "#ccc"
 });
 
